@@ -1,0 +1,29 @@
+{
+  "name": "hawadeet-platform",
+  "version": "1.0.0",
+  "description": "منصة حواديت - السوق الإلكتروني التفاعلي القائم على الفيديوهات القصيرة (Reels)",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace=@hawadeet/backend run start:dev",
+    "dev:merchant": "npm --workspace=@hawadeet/merchant-dashboard run dev",
+    "dev:admin": "npm --workspace=@hawadeet/admin-dashboard run dev",
+    "docker:up": "docker compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f docker/docker-compose.yml down",
+    "lint": "echo 'Linting all workspaces...'",
+    "build": "echo 'Building all packages...'"
+  },
+  "keywords": [
+    "hawadeet",
+    "marketplace",
+    "reels",
+    "food-delivery",
+    "retail",
+    "home-kitchens"
+  ],
+  "author": "Hawadeet Engineering Team",
+  "license": "UNLICENSED"
+}

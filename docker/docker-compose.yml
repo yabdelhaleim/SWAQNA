@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # PostgreSQL 16 with PostGIS Extension (Spatial Geospatial Engine)
+  # ============================================================================
+  hawadeet-postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: hawadeet-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hawadeet_admin
+      POSTGRES_PASSWORD: hawadeet_secure_password_2026
+      POSTGRES_DB: hawadeet_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - hawadeet_pgdata:/var/lib/postgresql/data
+      - ../packages/database/migrations/0001_initial_schema.sql:/docker-entrypoint-initdb.d/0001_initial_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hawadeet_admin -d hawadeet_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # Redis 7 (Caching, Rate Limiting, Distributed Locks for Wallet)
+  # ============================================================================
+  hawadeet-redis:
+    image: redis:7-alpine
+    container_name: hawadeet-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass hawadeet_redis_password_2026
+    ports:
+      - "6379:6379"
+    volumes:
+      - hawadeet_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "hawadeet_redis_password_2026", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  hawadeet_pgdata:
+    driver: local
+  hawadeet_redisdata:
+    driver: local

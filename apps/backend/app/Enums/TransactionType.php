@@ -1,0 +1,14 @@
+<?php
+
+namespace App\Enums;
+
+enum TransactionType: string
+{
+    case WALLET_TOPUP = 'WALLET_TOPUP';
+    case ORDER_PAYMENT = 'ORDER_PAYMENT';
+    case ORDER_REFUND = 'ORDER_REFUND';
+    case DELIVERY_PAYOUT = 'DELIVERY_PAYOUT';
+    case MERCHANT_SETTLEMENT = 'MERCHANT_SETTLEMENT';
+    case PLATFORM_COMMISSION = 'PLATFORM_COMMISSION';
+    case ADMIN_CORRECTION = 'ADMIN_CORRECTION';
+}
