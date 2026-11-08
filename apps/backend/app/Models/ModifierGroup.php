@@ -13,8 +13,6 @@ class ModifierGroup extends Model
 {
     use HasFactory, HasUuids;
 
-    public $timestamps = false;
-
     protected $fillable = [
         'merchant_id',
         'name',
@@ -36,7 +34,7 @@ class ModifierGroup extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(ModifierItem::class, 'group_id');
+        return $this->hasMany(ModifierItem::class, 'group_id')->orderBy('sort_order');
     }
 
     public function products(): BelongsToMany
@@ -46,6 +44,6 @@ class ModifierGroup extends Model
             'product_modifier_groups',
             'modifier_group_id',
             'product_id'
-        );
+        )->withTimestamps();
     }
 }

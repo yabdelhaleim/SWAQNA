@@ -11,22 +11,21 @@ class ProductVariant extends Model
 {
     use HasFactory, HasUuids;
 
-    public $timestamps = false;
-
     protected $fillable = [
         'product_id',
+        'name',
+        'price',
         'sku',
-        'color',
-        'size',
-        'price_override',
         'stock_quantity',
         'is_available',
+        'sort_order',
     ];
 
     protected $casts = [
-        'price_override' => 'decimal:2',
+        'price' => 'decimal:2',
         'stock_quantity' => 'integer',
         'is_available' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     public function product(): BelongsTo

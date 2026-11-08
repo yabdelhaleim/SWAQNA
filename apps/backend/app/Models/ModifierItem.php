@@ -11,18 +11,18 @@ class ModifierItem extends Model
 {
     use HasFactory, HasUuids;
 
-    public $timestamps = false;
-
     protected $fillable = [
         'group_id',
         'name',
-        'extra_price',
+        'additional_price',
         'is_available',
+        'sort_order',
     ];
 
     protected $casts = [
-        'extra_price' => 'decimal:2',
+        'additional_price' => 'decimal:2',
         'is_available' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     public function group(): BelongsTo

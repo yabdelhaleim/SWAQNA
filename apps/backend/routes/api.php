@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\v1\Merchant\AuthController as MerchantAuthController;
+use App\Http\Controllers\Api\v1\Merchant\MenuController as MerchantMenuController;
 use App\Http\Controllers\Api\v1\Merchant\SettingsController as MerchantSettingsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -48,6 +49,16 @@ Route::prefix('v1')->group(function () {
             Route::post('/media', [MerchantSettingsController::class, 'uploadMedia']);
             Route::put('/business-hours', [MerchantSettingsController::class, 'updateBusinessHours']);
             Route::post('/fulfillment-request', [MerchantSettingsController::class, 'requestFulfillmentChange']);
+        });
+
+        // إدارة قائمة الطعام والمنتجات (Menu & Products Catalog)
+        Route::prefix('menu')->middleware(['auth:sanctum', 'merchant'])->group(function () {
+            Route::get('/', [MerchantMenuController::class, 'index']);
+            Route::post('/products', [MerchantMenuController::class, 'store']);
+            Route::put('/products/{id}', [MerchantMenuController::class, 'update']);
+            Route::patch('/products/{id}/toggle-availability', [MerchantMenuController::class, 'toggleAvailability']);
+            Route::delete('/products/{id}', [MerchantMenuController::class, 'destroy']);
+            Route::post('/upload-image', [MerchantMenuController::class, 'uploadImage']);
         });
 
     });

@@ -21,8 +21,12 @@ class Product extends Model
         'base_price',
         'image_url',
         'is_available',
+        'prep_time_minutes',
+        'servings_count',
+        'requires_preorder',
         'track_inventory',
         'stock_quantity',
+        'sort_order',
     ];
 
     protected function casts(): array
@@ -30,8 +34,11 @@ class Product extends Model
         return [
             'base_price' => 'decimal:2',
             'is_available' => 'boolean',
+            'requires_preorder' => 'boolean',
             'track_inventory' => 'boolean',
             'stock_quantity' => 'integer',
+            'prep_time_minutes' => 'integer',
+            'sort_order' => 'integer',
         ];
     }
 
@@ -52,12 +59,12 @@ class Product extends Model
             'product_modifier_groups',
             'product_id',
             'modifier_group_id'
-        );
+        )->withTimestamps();
     }
 
     public function variants(): HasMany
     {
-        return $this->hasMany(ProductVariant::class);
+        return $this->hasMany(ProductVariant::class)->orderBy('sort_order');
     }
 
     public function reels(): HasMany
