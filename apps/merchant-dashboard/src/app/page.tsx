@@ -216,7 +216,7 @@ export default function MerchantAuthPage() {
   };
 
   return (
-    <main className="min-h-screen w-full flex items-center justify-center p-2 md:p-6 bg-[#ecd5b5] select-none">
+    <main className="w-screen h-screen overflow-hidden select-none relative bg-[#ecd5b5]">
       
       {/* 🌟 كود التيست التوضيحي السريع في بيئة التطوير */}
       {debugCode && step === "OTP" && (
@@ -259,11 +259,16 @@ export default function MerchantAuthPage() {
           />
         )
       ) : (
-        /* 🖼️ شاشات المصادقة والتسجيل الأصلية بحجم متجاوب يملأ الشاشة بدقة */
-        <div
-          className="relative shadow-[0_25px_60px_rgba(80,40,10,0.35)] rounded-[26px] overflow-hidden border border-[#d8be99] bg-[#f8efe0] mx-auto"
-          style={{ width: "min(96vw, calc(94vh * (1024 / 682)))", aspectRatio: "1024 / 682" }}
-        >
+        /* 🖼️ شاشات المصادقة والتسجيل الأصلية - ملء الشاشة بالكامل من الحافة للحافة بدون أي فراغات */
+        <div className="relative w-full h-full overflow-hidden">
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden select-none"
+            style={{
+              width: "max(100vw, calc(100vh * (1024 / 682)))",
+              height: "max(100vh, calc(100vw * (682 / 1024)))",
+              aspectRatio: "1024 / 682",
+            }}
+          >
           
           {/* الصورة الأصلية التي تمثل الشاشة كاملة */}
           <Image
@@ -588,6 +593,7 @@ export default function MerchantAuthPage() {
           </div>
         )}
 
+          </div>
         </div>
       )}
     </main>
