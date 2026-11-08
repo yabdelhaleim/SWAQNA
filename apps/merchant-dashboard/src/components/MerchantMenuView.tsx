@@ -279,19 +279,16 @@ export default function MerchantMenuView({
   });
 
   return (
-    <div
-      className="relative select-none overflow-hidden rounded-3xl shadow-2xl bg-[#f9f5ee] font-sans mx-auto"
-      style={{ width: "min(96vw, calc(94vh * (1024 / 682)))", aspectRatio: "1024 / 682" }}
-    >
+    <div className="relative w-full h-full select-none overflow-hidden font-sans">
       {/* =========================================================================
-          الخلفية الرسمية المصممة (Base Canvas Visual Asset)
+          الخلفية الرسمية المصممة (Base Canvas Visual Asset) - ملء الشاشة بالكامل
          ========================================================================= */}
       <Image
         src="/images/menu-design.jpg"
         alt="Hawadeet Menu & Catalog Management"
         fill
         priority
-        className="object-cover pointer-events-none"
+        className="object-fill pointer-events-none"
       />
 
       {/* =========================================================================
