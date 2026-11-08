@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\v1\Merchant\AuthController as MerchantAuthController;
+use App\Http\Controllers\Api\v1\Merchant\SettingsController as MerchantSettingsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,15 @@ Route::prefix('v1')->group(function () {
                 Route::get('/me', [MerchantAuthController::class, 'me']);
                 Route::post('/logout', [MerchantAuthController::class, 'logout']);
             });
+        });
+
+        // إعدادات المتجر وساعات العمل والتشغيل (محمية بـ Sanctum و EnsureUserIsMerchant)
+        Route::prefix('settings')->middleware(['auth:sanctum', 'merchant'])->group(function () {
+            Route::get('/', [MerchantSettingsController::class, 'getSettings']);
+            Route::put('/profile', [MerchantSettingsController::class, 'updateProfile']);
+            Route::post('/media', [MerchantSettingsController::class, 'uploadMedia']);
+            Route::put('/business-hours', [MerchantSettingsController::class, 'updateBusinessHours']);
+            Route::post('/fulfillment-request', [MerchantSettingsController::class, 'requestFulfillmentChange']);
         });
 
     });

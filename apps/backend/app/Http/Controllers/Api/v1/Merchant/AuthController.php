@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\v1\Merchant;
 
 use App\Enums\DeliveryFulfillmentType;
+use App\Enums\FulfillmentRequestStatus;
 use App\Enums\MerchantStatus;
 use App\Enums\MerchantType;
 use App\Enums\UserRole;
@@ -12,6 +13,7 @@ use App\Http\Requests\Merchant\RegisterStoreRequest;
 use App\Http\Requests\Merchant\SendOtpRequest;
 use App\Http\Requests\Merchant\VerifyOtpRequest;
 use App\Models\Merchant;
+use App\Models\MerchantBusinessHour;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\OtpService;
@@ -144,7 +146,16 @@ class AuthController extends Controller
             : "POINT({$lng} {$lat})";
 
         return DB::transaction(function () use ($user, $validated, $slug, $locationValue) {
-            // 1. إنشاء سجل المتجر
+            // تحديد وقت التجهيز الافتراضي بناءً على طبيعة المتجر
+            // الأكل البيتي يحتاج وقتاً أطول للتجهيز والطهي الطازج
+            $defaultPrepTime = match ($validated['merchant_type']) {
+                'HOME_KITCHEN' => 120, // 120 دقيقة للأكل البيتي
+                'RESTAURANT' => 45,   // 45 دقيقة للمطاعم
+                'RETAIL_SHOP' => 20,  // 20 دقيقة للمتاجر ومحلات التجزئة
+                default => 45,
+            };
+
+            // 1. إنشاء سجل المتجر مع التوصيل بواسطة التاجر كوضع افتراضي
             $merchant = Merchant::create([
                 'owner_id' => $user->id,
                 'name' => $validated['store_name'],
@@ -152,12 +163,24 @@ class AuthController extends Controller
                 'merchant_type' => $validated['merchant_type'],
                 'phone_number' => $user->phone_number,
                 'status' => MerchantStatus::PENDING_APPROVAL, // يحتاج موافقة الأدمن
-                'fulfillment_type' => DeliveryFulfillmentType::PLATFORM_DELIVERY,
+                'fulfillment_type' => DeliveryFulfillmentType::MERCHANT_DELIVERY, // الأساسي: توصيل بواسطة التاجر
+                'fulfillment_request_status' => FulfillmentRequestStatus::NONE,
                 'address_text' => $validated['address_text'],
                 'location' => $locationValue,
-                'preparation_time_minutes' => 30,
+                'preparation_time_minutes' => $defaultPrepTime,
                 'delivery_radius_km' => 10.0,
             ]);
+
+            // 2. إنشاء ساعات العمل الافتراضية لأيام الأسبوع (من الأحد للسبت)
+            for ($day = 0; $day <= 6; $day++) {
+                MerchantBusinessHour::create([
+                    'merchant_id' => $merchant->id,
+                    'day_of_week' => $day,
+                    'open_time' => '10:00:00',
+                    'close_time' => '23:00:00',
+                    'is_closed' => false,
+                ]);
+            }
 
             // 2. تحديث اسم المستخدم ليتطابق مع اسم مالك المحل
             if ($user->full_name === 'تاجر جديد') {
@@ -196,7 +219,11 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
-        $merchant = Merchant::where('owner_id', $user->id)->first();
+        
+        // استخدام Eager Loading لتحميل المتجر مع ساعات العمل والمحفظة دفعة واحدة ومنع N+1
+        $merchant = Merchant::with(['businessHours', 'wallet'])
+            ->where('owner_id', $user->id)
+            ->first();
 
         return response()->json([
             'success' => true,
@@ -215,8 +242,26 @@ class AuthController extends Controller
                 'logo_url' => $merchant->logo_url,
                 'cover_image_url' => $merchant->cover_image_url,
                 'fulfillment_type' => $merchant->fulfillment_type,
-                'avg_rating' => $merchant->avg_rating,
+                'fulfillment_request_status' => $merchant->fulfillment_request_status,
+                'preparation_time_minutes' => $merchant->preparation_time_minutes,
+                'min_order_amount' => (float) $merchant->min_order_amount,
+                'delivery_radius_km' => (float) $merchant->delivery_radius_km,
+                'address_text' => $merchant->address_text,
+                'is_open_now' => $merchant->isOpenNow(),
+                'avg_rating' => (float) $merchant->avg_rating,
                 'total_reviews' => $merchant->total_reviews,
+                'wallet' => $merchant->wallet ? [
+                    'id' => $merchant->wallet->id,
+                    'balance' => (float) $merchant->wallet->balance,
+                    'locked_amount' => (float) $merchant->wallet->locked_amount,
+                    'currency' => $merchant->wallet->currency,
+                ] : null,
+                'business_hours' => $merchant->businessHours->map(fn($h) => [
+                    'day_of_week' => $h->day_of_week,
+                    'open_time' => substr($h->open_time, 0, 5),
+                    'close_time' => substr($h->close_time, 0, 5),
+                    'is_closed' => (bool) $h->is_closed,
+                ]),
             ] : null,
         ]);
     }

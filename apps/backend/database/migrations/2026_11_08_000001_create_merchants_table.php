@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('phone_number', 20);
             $table->string('status', 50)->default('PENDING_APPROVAL');
 
-            $table->string('fulfillment_type', 50)->default('PLATFORM_DELIVERY');
+            $table->string('fulfillment_type', 50)->default('MERCHANT_DELIVERY');
             $table->integer('preparation_time_minutes')->default(30);
             $table->decimal('min_order_amount', 10, 2)->default(0.00);
 
