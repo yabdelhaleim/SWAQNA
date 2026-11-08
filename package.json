@@ -4,7 +4,8 @@
   "description": "منصة حواديت - السوق الإلكتروني التفاعلي القائم على الفيديوهات القصيرة (Reels)",
   "private": true,
   "workspaces": [
-    "apps/*",
+    "apps/merchant-dashboard",
+    "apps/admin-dashboard",
     "packages/*"
   ],
   "scripts": {
