@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Send, ArrowRight, Check, CheckCircle2 } from "lucide-react";
+import { Send, ArrowRight, Check, CheckCircle2, Clock } from "lucide-react";
 import { merchantApi } from "@/lib/api";
 
 type Step = "PHONE" | "OTP" | "REGISTER_STORE" | "DASHBOARD";
@@ -319,16 +319,17 @@ export default function MerchantAuthPage() {
               ))}
             </div>
 
-            {/* عداد وقت انتهاء الكود (يغطي نص الوقت في الصورة بالوقت الحقيقي) */}
+            {/* عداد وقت انتهاء الكود (يغطي بالضبط نص الوقت في الصورة بالوقت الحقيقي) */}
             <div 
-              className="absolute z-20 flex items-center justify-center font-bold text-xs md:text-sm text-[#4a3420] pointer-events-none bg-[#fffaf0] rounded-lg px-2"
+              className="absolute z-20 flex items-center justify-center font-bold text-xs md:text-sm text-[#4a3420] pointer-events-none bg-[#fffdf7] rounded-lg px-2"
               style={{
-                top: "76.4%",
-                left: "35.0%",
-                width: "30.0%",
-                height: "4.0%",
+                top: "70.8%",
+                left: "34.0%",
+                width: "32.0%",
+                height: "4.8%",
               }}
             >
+              <Clock className="w-4 h-4 text-[#d32f2f] ml-1.5" />
               <span>ينتهي الكود خلال:&nbsp;</span>
               <span className="text-[#d32f2f] font-mono font-black text-sm md:text-base">{formatTime(countdown)}</span>
               <span>&nbsp;دقيقة</span>
