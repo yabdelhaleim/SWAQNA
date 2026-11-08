@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Send, ArrowRight, Check, CheckCircle2, Clock } from "lucide-react";
 import { merchantApi } from "@/lib/api";
+import MerchantDashboardView from "@/components/MerchantDashboardView";
 
 type Step = "PHONE" | "OTP" | "REGISTER_STORE" | "DASHBOARD";
 type MerchantType = "RESTAURANT" | "RETAIL_SHOP" | "HOME_KITCHEN";
@@ -46,6 +47,44 @@ export default function MerchantAuthPage() {
     }
     return () => clearInterval(timer);
   }, [step]);
+
+  // فحص تسجيل الدخول المحفوظ مسبقاً (Session Persistence)
+  useEffect(() => {
+    const savedToken = typeof window !== "undefined" ? localStorage.getItem("hawadeet_merchant_token") : null;
+    if (savedToken) {
+      setToken(savedToken);
+      merchantApi
+        .getSettings(savedToken)
+        .then((res) => {
+          if (res.success && res.data) {
+            setMerchantData(res.data);
+            setStep("DASHBOARD");
+          } else {
+            localStorage.removeItem("hawadeet_merchant_token");
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem("hawadeet_merchant_token");
+        });
+    }
+  }, []);
+
+  // تسجيل الخروج
+  const handleLogout = async () => {
+    if (token) {
+      try {
+        await merchantApi.logout(token);
+      } catch (err) {}
+    }
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("hawadeet_merchant_token");
+    }
+    setToken(null);
+    setMerchantData(null);
+    setPhoneNumber("");
+    setOtpCode(["", "", "", ""]);
+    setStep("PHONE");
+  };
 
   // تنسيق الثواني لصيغة mm:ss
   const formatTime = (seconds: number) => {
@@ -117,6 +156,9 @@ export default function MerchantAuthPage() {
       const res = await merchantApi.verifyOtp(phoneNumber, code);
       if (res.success) {
         setToken(res.token || null);
+        if (res.token && typeof window !== "undefined") {
+          localStorage.setItem("hawadeet_merchant_token", res.token);
+        }
         if (res.is_new_merchant) {
           setStep("REGISTER_STORE");
         } else {
@@ -182,25 +224,45 @@ export default function MerchantAuthPage() {
         </div>
       )}
 
-      {/* 🖼️ الحاوية المتجاوبة بدقة أبعاد التصميم الأصلي 1024x682 (بدون أي تكرار أو Duplicate) */}
-      <div className="relative w-full max-w-[1024px] aspect-[1024/682] shadow-[0_25px_60px_rgba(80,40,10,0.35)] rounded-[26px] overflow-hidden border border-[#d8be99] bg-[#f8efe0]">
-        
-        {/* الصورة الأصلية التي تمثل الشاشة كاملة */}
-        <Image
-          src={
-            step === "PHONE"
-              ? "/images/bg-phone.jpg"
-              : step === "OTP"
-              ? "/images/bg-otp.jpg"
-              : step === "REGISTER_STORE"
-              ? "/images/bg-register.jpg"
-              : "/images/bg-phone.jpg"
-          }
-          alt="حواديت - لوحة تحكم التاجر"
-          fill
-          priority
-          className="object-cover object-center pointer-events-none"
+      {/* ⚡ زر المعاينة السريعة للوحة التحكم في بيئة التطوير */}
+      {step !== "DASHBOARD" && (
+        <button
+          onClick={() => setStep("DASHBOARD")}
+          className="fixed bottom-3 right-3 z-50 bg-[#8b1e1e] text-white px-4 py-2 rounded-2xl text-xs font-bold shadow-xl border border-amber-300/40 hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
+        >
+          <span>معاينة لوحة التحكم مباشرة</span>
+          <span>⚡</span>
+        </button>
+      )}
+
+      {/* =========================================================================
+          عند الدخول للوحة التحكم: عرض شاشة إعدادات المتجر المتكاملة (Step: DASHBOARD)
+         ========================================================================= */}
+      {step === "DASHBOARD" ? (
+        <MerchantDashboardView
+          token={token || "mock-token"}
+          initialMerchant={merchantData}
+          user={{ full_name: "أحمد محمود (المدير)" }}
+          onLogout={handleLogout}
         />
+      ) : (
+        /* 🖼️ شاشات المصادقة والتسجيل الأصلية */
+        <div className="relative w-full max-w-[1024px] aspect-[1024/682] shadow-[0_25px_60px_rgba(80,40,10,0.35)] rounded-[26px] overflow-hidden border border-[#d8be99] bg-[#f8efe0]">
+          
+          {/* الصورة الأصلية التي تمثل الشاشة كاملة */}
+          <Image
+            src={
+              step === "PHONE"
+                ? "/images/bg-phone.jpg"
+                : step === "OTP"
+                ? "/images/bg-otp.jpg"
+                : "/images/bg-register.jpg"
+            }
+            alt="حواديت - لوحة تحكم التاجر"
+            fill
+            priority
+            className="object-cover object-center pointer-events-none"
+          />
 
         {/* تنبيه الأخطاء إن وُجد */}
         {errorMessage && (
@@ -510,57 +572,8 @@ export default function MerchantAuthPage() {
           </div>
         )}
 
-        {/* =====================================================================
-            شاشة النجاح والترحيب بالتاجر (Step 4: Success & Welcome Dashboard)
-           ===================================================================== */}
-        {step === "DASHBOARD" && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="bg-[#fffdf7] border-2 border-[#eedec0] rounded-[34px] p-8 max-w-[480px] w-full text-center shadow-2xl space-y-4 animate-scale-up">
-              
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 border border-emerald-300 mx-auto">
-                <CheckCircle2 className="w-10 h-10" />
-              </div>
-
-              <h2 className="text-2xl font-black text-[#3a2818]">
-                أهلاً بك يا بطل! تم الدخول بنجاح 🎉
-              </h2>
-
-              <div className="p-4 rounded-2xl bg-[#fbf5e8] border border-[#e8dac0] text-right space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-[#7c634c]">اسم المتجر:</span>
-                  <span className="font-bold text-[#3a2818]">{merchantData?.name || "متجرك في حواديت"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#7c634c]">نوع النشاط:</span>
-                  <span className="font-bold text-[#d32f2f]">
-                    {merchantData?.merchant_type === "RESTAURANT" ? "مطعم 🍔" :
-                     merchantData?.merchant_type === "RETAIL_SHOP" ? "محل تجاري 🛍️" : "مطبخ بيتي 🍲"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#7c634c]">حالة الاعتماد:</span>
-                  <span className="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-lg text-xs">
-                    {merchantData?.status || "في انتظار اعتماد الإدارة"}
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-xs text-[#7c634c]">
-                تم حفظ التوكن بنجاح. نحن الآن جاهزون للمرحلة الثانية: إعدادات المتجر وإدارة المنتجات والمنيو!
-              </p>
-
-              <button
-                onClick={() => alert("سيتم بناء صفحة إدارة المنتجات والمنيو في المرحلة القادمة!")}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold text-sm shadow-md hover:brightness-105 transition-all"
-              >
-                الانتقال لإعدادات المتجر والمنيو ⬅️
-              </button>
-
-            </div>
-          </div>
-        )}
-
-      </div>
+        </div>
+      )}
     </main>
   );
 }
