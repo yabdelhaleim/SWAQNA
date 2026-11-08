@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\v1\Merchant\AuthController as MerchantAuthController;
 use App\Http\Controllers\Api\v1\Merchant\MenuController as MerchantMenuController;
+use App\Http\Controllers\Api\v1\Merchant\OrderController as MerchantOrderController;
 use App\Http\Controllers\Api\v1\Merchant\SettingsController as MerchantSettingsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +60,17 @@ Route::prefix('v1')->group(function () {
             Route::patch('/products/{id}/toggle-availability', [MerchantMenuController::class, 'toggleAvailability']);
             Route::delete('/products/{id}', [MerchantMenuController::class, 'destroy']);
             Route::post('/upload-image', [MerchantMenuController::class, 'uploadImage']);
+        });
+
+        // إدارة الطلبات (Order Management)
+        Route::prefix('orders')->middleware(['auth:sanctum', 'merchant'])->group(function () {
+            Route::get('/', [MerchantOrderController::class, 'index']);
+            Route::get('/stats', [MerchantOrderController::class, 'stats']);
+            Route::post('/create-test-order', [MerchantOrderController::class, 'createTestOrder']);
+            Route::get('/{id}', [MerchantOrderController::class, 'show']);
+            Route::post('/{id}/accept', [MerchantOrderController::class, 'accept']);
+            Route::post('/{id}/reject', [MerchantOrderController::class, 'reject']);
+            Route::patch('/{id}/ready', [MerchantOrderController::class, 'markReady']);
         });
 
     });

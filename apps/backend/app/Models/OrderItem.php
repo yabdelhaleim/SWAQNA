@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrderItem extends Model
 {
@@ -21,6 +22,7 @@ class OrderItem extends Model
         'unit_price',
         'quantity',
         'total_price',
+        'item_notes',
     ];
 
     protected $casts = [
@@ -42,5 +44,10 @@ class OrderItem extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class);
+    }
+
+    public function modifiers(): HasMany
+    {
+        return $this->hasMany(OrderItemModifier::class);
     }
 }

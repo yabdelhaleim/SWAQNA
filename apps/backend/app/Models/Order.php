@@ -22,6 +22,9 @@ class Order extends Model
         'merchant_id',
         'delivery_captain_id',
         'delivery_address_id',
+        'customer_name',
+        'customer_phone',
+        'delivery_address',
         'fulfillment_type',
         'subtotal_amount',
         'delivery_fee',
@@ -32,7 +35,13 @@ class Order extends Model
         'remaining_cash_amount',
         'is_paid',
         'status',
+        'prep_time_minutes',
+        'order_notes',
         'rejection_reason',
+        'accepted_at',
+        'ready_at',
+        'delivered_at',
+        'cancelled_at',
     ];
 
     protected function casts(): array
@@ -48,6 +57,11 @@ class Order extends Model
             'paid_from_wallet_amount' => 'decimal:2',
             'remaining_cash_amount' => 'decimal:2',
             'is_paid' => 'boolean',
+            'prep_time_minutes' => 'integer',
+            'accepted_at' => 'datetime',
+            'ready_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 
