@@ -12,6 +12,10 @@ export interface ApiResponse<T = any> {
   user?: any;
   merchant?: any;
   data?: any;
+  product?: any;
+  products?: any[];
+  categories?: any[];
+  available_modifier_groups?: any[];
   business_hours?: any[];
   url?: string;
   debug_code?: string;
@@ -194,6 +198,95 @@ export const merchantApi = {
    */
   async uploadMedia(token: string, formData: FormData): Promise<ApiResponse> {
     const res = await fetch(`${API_BASE_URL}/settings/media`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    return res.json();
+  },
+
+  /**
+   * جلب قائمة الطعام والمنتجات كاملة
+   */
+  async getMenu(token: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * إضافة طبق جديد
+   */
+  async createProduct(token: string, data: any): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/products`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  /**
+   * تعديل بيانات طبق
+   */
+  async updateProduct(token: string, productId: string, data: any): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/products/${productId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  /**
+   * تبديل حالة توفر الطبق اليوم (متاح / غير متاح)
+   */
+  async toggleProductAvailability(token: string, productId: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/products/${productId}/toggle-availability`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * حذف طبق من القائمة
+   */
+  async deleteProduct(token: string, productId: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/products/${productId}`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * رفع صورة للطبق
+   */
+  async uploadDishImage(token: string, formData: FormData): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/upload-image`, {
       method: "POST",
       headers: {
         Accept: "application/json",

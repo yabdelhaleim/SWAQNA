@@ -34,6 +34,7 @@ interface MerchantDashboardViewProps {
   token: string;
   initialMerchant?: any;
   user?: any;
+  onNavigate?: (view: "settings" | "menu") => void;
   onLogout: () => void;
 }
 
@@ -51,6 +52,7 @@ export default function MerchantDashboardView({
   token,
   initialMerchant,
   user,
+  onNavigate,
   onLogout,
 }: MerchantDashboardViewProps) {
   // Store Form State
@@ -283,7 +285,10 @@ export default function MerchantDashboardView({
   };
 
   return (
-    <div className="relative w-full max-w-[1024px] aspect-[1024/682] select-none overflow-hidden rounded-3xl shadow-2xl bg-[#f9f5ee] font-sans">
+    <div
+      className="relative select-none overflow-hidden rounded-3xl shadow-2xl bg-[#f9f5ee] font-sans mx-auto"
+      style={{ width: "min(96vw, calc(94vh * (1024 / 682)))", aspectRatio: "1024 / 682" }}
+    >
       {/* =========================================================================
           الخلفية الرسمية المصممة (Base Canvas Visual Asset)
          ========================================================================= */}
@@ -726,8 +731,11 @@ export default function MerchantDashboardView({
       <button
         type="button"
         onClick={() => {
-          setActiveMenu("menu");
-          showToast("صفحة إدارة المنتجات والمنيو ستتوفر في المرحلة القادمة! 🍴");
+          if (onNavigate) {
+            onNavigate("menu");
+          } else {
+            setActiveMenu("menu");
+          }
         }}
         className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
         style={{ top: "43.2%", right: "1.2%", width: "15.0%", height: "5.0%" }}

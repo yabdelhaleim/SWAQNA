@@ -5,12 +5,14 @@ import Image from "next/image";
 import { Send, ArrowRight, Check, CheckCircle2, Clock } from "lucide-react";
 import { merchantApi } from "@/lib/api";
 import MerchantDashboardView from "@/components/MerchantDashboardView";
+import MerchantMenuView from "@/components/MerchantMenuView";
 
 type Step = "PHONE" | "OTP" | "REGISTER_STORE" | "DASHBOARD";
 type MerchantType = "RESTAURANT" | "RETAIL_SHOP" | "HOME_KITCHEN";
 
 export default function MerchantAuthPage() {
   const [step, setStep] = useState<Step>("PHONE");
+  const [currentDashboardView, setCurrentDashboardView] = useState<"settings" | "menu">("menu");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpCode, setOtpCode] = useState(["", "", "", ""]);
   const [token, setToken] = useState<string | null>(null);
@@ -236,18 +238,32 @@ export default function MerchantAuthPage() {
       )}
 
       {/* =========================================================================
-          عند الدخول للوحة التحكم: عرض شاشة إعدادات المتجر المتكاملة (Step: DASHBOARD)
+          عند الدخول للوحة التحكم: عرض شاشة إعدادات المتجر أو المنيو (Step: DASHBOARD)
          ========================================================================= */}
       {step === "DASHBOARD" ? (
-        <MerchantDashboardView
-          token={token || "mock-token"}
-          initialMerchant={merchantData}
-          user={{ full_name: "أحمد محمود (المدير)" }}
-          onLogout={handleLogout}
-        />
+        currentDashboardView === "menu" ? (
+          <MerchantMenuView
+            token={token || "mock-token"}
+            storeName={merchantData?.name || "مطبخ أم أحمد للأكل البيتي"}
+            user={{ full_name: "أحمد محمود (المدير)" }}
+            onNavigate={(v) => setCurrentDashboardView(v)}
+            onLogout={handleLogout}
+          />
+        ) : (
+          <MerchantDashboardView
+            token={token || "mock-token"}
+            initialMerchant={merchantData}
+            user={{ full_name: "أحمد محمود (المدير)" }}
+            onNavigate={(v) => setCurrentDashboardView(v)}
+            onLogout={handleLogout}
+          />
+        )
       ) : (
-        /* 🖼️ شاشات المصادقة والتسجيل الأصلية */
-        <div className="relative w-full max-w-[1024px] aspect-[1024/682] shadow-[0_25px_60px_rgba(80,40,10,0.35)] rounded-[26px] overflow-hidden border border-[#d8be99] bg-[#f8efe0]">
+        /* 🖼️ شاشات المصادقة والتسجيل الأصلية بحجم متجاوب يملأ الشاشة بدقة */
+        <div
+          className="relative shadow-[0_25px_60px_rgba(80,40,10,0.35)] rounded-[26px] overflow-hidden border border-[#d8be99] bg-[#f8efe0] mx-auto"
+          style={{ width: "min(96vw, calc(94vh * (1024 / 682)))", aspectRatio: "1024 / 682" }}
+        >
           
           {/* الصورة الأصلية التي تمثل الشاشة كاملة */}
           <Image
