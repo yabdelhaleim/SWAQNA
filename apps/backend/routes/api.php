@@ -1,17 +1,18 @@
 <?php
 
+use App\Http\Controllers\Api\v1\Merchant\AuthController as MerchantAuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes - منصة حواديت
+| API Routes - منصة حواديت (Hawadeet Platform)
 |--------------------------------------------------------------------------
 */
 
 Route::prefix('v1')->group(function () {
 
-    // Health check endpoint
+    // فحص صحة وجاهزية السيرفر
     Route::get('/health', function () {
         return response()->json([
             'status' => 'healthy',
@@ -21,17 +22,24 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
-    // Authenticated user
-    Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-        return response()->json([
-            'user' => $request->user()->load(['addresses', 'wallet']),
-        ]);
+    // =========================================================================
+    // مسارات لوحة تحكم التاجر (Merchant Dashboard API)
+    // =========================================================================
+    Route::prefix('merchant')->group(function () {
+
+        // مصادقة ودخول التاجر (عامة بدون توكن)
+        Route::prefix('auth')->group(function () {
+            Route::post('/send-otp', [MerchantAuthController::class, 'sendOtp']);
+            Route::post('/verify-otp', [MerchantAuthController::class, 'verifyOtp']);
+
+            // مسارات التاجر المحمية بـ Sanctum و EnsureUserIsMerchant Middleware
+            Route::middleware(['auth:sanctum', 'merchant'])->group(function () {
+                Route::post('/register-store', [MerchantAuthController::class, 'registerStore']);
+                Route::get('/me', [MerchantAuthController::class, 'me']);
+                Route::post('/logout', [MerchantAuthController::class, 'logout']);
+            });
+        });
+
     });
 
-    // Modules placeholders
-    // Route::prefix('auth')->group(...);
-    // Route::prefix('merchants')->group(...);
-    // Route::prefix('reels')->group(...);
-    // Route::prefix('orders')->group(...);
-    // Route::prefix('wallet')->group(...);
 });
