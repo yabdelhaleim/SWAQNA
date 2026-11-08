@@ -2,22 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { 
-  Send, 
-  Smartphone, 
-  ShieldCheck, 
-  Clock, 
-  ArrowRight, 
-  Store, 
-  MapPin, 
-  UtensilsCrossed, 
-  ShoppingBag, 
-  Soup, 
-  Check, 
-  Sparkles,
-  Edit2,
-  CheckCircle2
-} from "lucide-react";
+import { Send, ArrowRight, Check, CheckCircle2 } from "lucide-react";
 import { merchantApi } from "@/lib/api";
 
 type Step = "PHONE" | "OTP" | "REGISTER_STORE" | "DASHBOARD";
@@ -74,10 +59,9 @@ export default function MerchantAuthPage() {
     if (e) e.preventDefault();
     setErrorMessage(null);
 
-    // التحقق من الهاتف
     const cleaned = phoneNumber.replace(/[^0-9]/g, "");
     if (!/^(010|011|012|015)[0-9]{8}$/.test(cleaned)) {
-      setErrorMessage("يرجى إدخال رقم هاتف مصري صحيح يبدأ بـ 010 أو 011 أو 012 أو 015 ومكون من 11 رقماً.");
+      setErrorMessage("يرجى إدخال رقم هاتف مصري صحيح (11 رقم يبدأ بـ 010 أو 011 أو 012 أو 015).");
       return;
     }
 
@@ -93,7 +77,7 @@ export default function MerchantAuthPage() {
       } else {
         setErrorMessage(res.message || "فشل إرسال كود التحقق. يرجى المحاولة لاحقاً.");
       }
-    } catch (err: any) {
+    } catch (err) {
       setErrorMessage("تعذر الاتصال بالسيرفر. تأكد من تشغيل الباك إند.");
     } finally {
       setLoading(false);
@@ -110,12 +94,10 @@ export default function MerchantAuthPage() {
     newOtp[index] = value;
     setOtpCode(newOtp);
 
-    // الانتقال للخانة التالية تلقائياً
     if (value && index < 3) {
       inputRefs[index + 1].current?.focus();
     }
 
-    // إذا اكتملت الأرقام الـ 4، يتم التحقق فوراً
     if (newOtp.every((digit) => digit !== "")) {
       verifyCode(newOtp.join(""));
     }
@@ -152,8 +134,8 @@ export default function MerchantAuthPage() {
   };
 
   // 4. إنشاء المتجر للتاجر الجديد
-  const handleRegisterStore = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRegisterStore = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!token) return;
 
     if (!storeName.trim() || storeName.length < 3) {
@@ -190,142 +172,137 @@ export default function MerchantAuthPage() {
   };
 
   return (
-    <main className="relative min-h-screen w-full flex items-center justify-center p-4 overflow-hidden select-none bg-[#fdf8ee]">
+    <main className="min-h-screen w-full flex items-center justify-center p-2 md:p-6 bg-[#ecd5b5] select-none">
       
-      {/* 🖼️ خلفية الحضارة المصرية والنيل والأهرامات المطابقة تماماً */}
-      <div className="absolute inset-0 z-0">
+      {/* 🌟 كود التيست التوضيحي السريع في بيئة التطوير */}
+      {debugCode && step === "OTP" && (
+        <div className="fixed top-3 left-3 z-50 bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-mono shadow-2xl flex items-center gap-2 border border-emerald-400 animate-bounce">
+          <span>كود التجربة السريع:</span>
+          <span className="font-bold text-base bg-emerald-950 px-2 py-0.5 rounded">{debugCode}</span>
+        </div>
+      )}
+
+      {/* 🖼️ الحاوية المتجاوبة بدقة أبعاد التصميم الأصلي 1024x682 (بدون أي تكرار أو Duplicate) */}
+      <div className="relative w-full max-w-[1024px] aspect-[1024/682] shadow-[0_25px_60px_rgba(80,40,10,0.35)] rounded-[26px] overflow-hidden border border-[#d8be99] bg-[#f8efe0]">
+        
+        {/* الصورة الأصلية التي تمثل الشاشة كاملة */}
         <Image
           src={
             step === "PHONE"
               ? "/images/bg-phone.jpg"
               : step === "OTP"
               ? "/images/bg-otp.jpg"
-              : "/images/bg-register.jpg"
+              : step === "REGISTER_STORE"
+              ? "/images/bg-register.jpg"
+              : "/images/bg-phone.jpg"
           }
-          alt="حضارة حواديت المصرية"
+          alt="حواديت - لوحة تحكم التاجر"
           fill
           priority
-          className="object-cover object-center filter brightness-[1.02]"
+          className="object-cover object-center pointer-events-none"
         />
-        {/* طبقة تظليل خفيفة جداً لتعزيز قراءة البطاقة المركزية */}
-        <div className="absolute inset-0 bg-amber-950/10 pointer-events-none" />
-      </div>
 
-      {/* 🌟 كود التيست التوضيحي في بيئة التطوير السريع */}
-      {debugCode && step === "OTP" && (
-        <div className="fixed top-4 left-4 z-50 bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-mono shadow-lg flex items-center gap-2 animate-bounce">
-          <span>كود التحقق السريع للتجربة:</span>
-          <span className="font-bold text-base bg-emerald-800 px-2 py-0.5 rounded">{debugCode}</span>
-        </div>
-      )}
-
-      {/* =========================================================================
-          الشاشة الأولى: إدخال رقم الهاتف (Step 1: Phone Input)
-         ========================================================================= */}
-      {step === "PHONE" && (
-        <div className="relative z-10 w-full max-w-[540px] pt-[140px] transition-all duration-300">
-          <div className="bg-[#fffdf7]/95 backdrop-blur-sm border-2 border-[#eedec0] rounded-[38px] p-8 md:p-10 shadow-[0_20px_50px_rgba(110,60,20,0.2)] text-center">
-            
-            <h1 className="text-2xl md:text-3xl font-extrabold text-[#3a2818] mb-2 tracking-tight">
-              مرحباً بك في لوحة تحكم التاجر
-            </h1>
-            <p className="text-sm md:text-base text-[#7c634c] mb-7 font-medium">
-              سجّل دخولك لمتابعة مبيعاتك واستقبال الطلبات
-            </p>
-
-            {errorMessage && (
-              <div className="mb-5 p-3 rounded-2xl bg-red-100/90 border border-red-300 text-red-700 text-xs font-semibold text-right">
-                ⚠️ {errorMessage}
-              </div>
-            )}
-
-            <form onSubmit={handleSendOtp} className="space-y-6">
-              <div className="text-right">
-                <label className="text-xs font-bold text-[#5c432d] flex items-center gap-1.5 mb-2 mr-1">
-                  <Smartphone className="w-4 h-4 text-[#d32f2f]" />
-                  <span>رقم الهاتف:</span>
-                </label>
-
-                {/* حقل الهاتف مع علم مصر و +20 */}
-                <div className="flex items-center bg-[#fdf9f0] border-2 border-[#e6d5b8] rounded-2xl p-1.5 focus-within:border-[#d32f2f] focus-within:ring-2 focus-within:ring-[#d32f2f]/20 transition-all shadow-inner">
-                  
-                  {/* بادج كود الدولة */}
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-xl border border-[#e8dac0] shadow-sm text-sm font-bold text-[#4a3520]">
-                    <span className="text-lg">🇪🇬</span>
-                    <span>+20</span>
-                    <span className="text-xs text-gray-400">▾</span>
-                  </div>
-
-                  {/* خانة رقم الهاتف */}
-                  <input
-                    type="tel"
-                    dir="ltr"
-                    maxLength={11}
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="010xxxxxxxx"
-                    className="flex-1 bg-transparent px-4 py-2.5 text-base md:text-lg font-semibold text-[#3a2818] placeholder-[#b8a48e] focus:outline-none text-left tracking-wider"
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              {/* الزر الأحمر الدائري */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#d32f2f] to-[#b71c1c] text-white font-bold text-lg shadow-[0_8px_20px_rgba(211,47,47,0.35)] hover:shadow-[0_10px_25px_rgba(211,47,47,0.45)] hover:brightness-105 active:scale-[0.99] transition-all flex items-center justify-center gap-3 disabled:opacity-60"
-              >
-                <Send className="w-5 h-5 -rotate-45" />
-                <span>{loading ? "جاري الإرسال..." : "إرسال كود التحقق"}</span>
-              </button>
-            </form>
-
+        {/* تنبيه الأخطاء إن وُجد */}
+        {errorMessage && (
+          <div className="absolute top-[34%] left-1/2 -translate-x-1/2 z-40 w-[48%] bg-red-600/95 text-white text-xs md:text-sm font-bold py-2 px-4 rounded-xl shadow-lg text-center animate-fade-in border border-red-300">
+            ⚠️ {errorMessage}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* =========================================================================
-          الشاشة الثانية: تأكيد كود الـ OTP (Step 2: Verify OTP)
-         ========================================================================= */}
-      {step === "OTP" && (
-        <div className="relative z-10 w-full max-w-[540px] pt-[140px] transition-all duration-300">
-          <div className="bg-[#fffdf7]/95 backdrop-blur-sm border-2 border-[#eedec0] rounded-[38px] p-8 md:p-10 shadow-[0_20px_50px_rgba(110,60,20,0.2)] text-center">
-            
-            {/* درع الأمان الأحمر */}
-            <div className="flex justify-center mb-3">
-              <div className="relative p-3 rounded-2xl bg-red-100/80 border border-red-200">
-                <ShieldCheck className="w-9 h-9 text-[#d32f2f]" />
-                <span className="absolute -top-1 -right-1 text-xs text-amber-500 font-bold">✨</span>
-              </div>
+        {/* =====================================================================
+            الشاشة الأولى: إدخال الهاتف (Interactive Overlays Only - Zero Duplicate)
+           ===================================================================== */}
+        {step === "PHONE" && (
+          <form onSubmit={handleSendOtp}>
+            {/* 1. حقل كتابة رقم الهاتف (يغطي بالضبط خانة 010xxxxxxxx في الصورة) */}
+            <div 
+              className="absolute z-20 flex items-center"
+              style={{
+                top: "57.8%",
+                left: "26.3%",
+                width: "47.2%",
+                height: "9.0%",
+              }}
+            >
+              {/* إخفاء علم +20 إذا أراد المستخدم، أو استخدام الحقل مباشرة */}
+              <input
+                type="tel"
+                dir="ltr"
+                maxLength={11}
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="010xxxxxxxx"
+                className="w-full h-full bg-[#fcf6ea]/95 hover:bg-white focus:bg-white text-[#3a2818] text-base md:text-xl font-bold rounded-2xl border-2 border-[#e3d0b1] focus:border-[#d32f2f] focus:outline-none focus:ring-4 focus:ring-[#d32f2f]/20 px-5 text-left tracking-wider transition-all shadow-inner"
+                autoFocus
+              />
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-extrabold text-[#3a2818] mb-2">
-              تأكيد رقم الهاتف
-            </h1>
+            {/* 2. زر إرسال كود التحقق (فوق الزر الأحمر بالمليمتر) */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="absolute z-20 rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98] disabled:opacity-50"
+              style={{
+                top: "69.8%",
+                left: "26.3%",
+                width: "47.2%",
+                height: "9.2%",
+                background: "linear-gradient(to right, #cf2828, #af1a1a)",
+                boxShadow: "0 6px 16px rgba(180, 25, 25, 0.4)",
+              }}
+            >
+              <Send className="w-5 h-5 text-white -rotate-45" />
+              <span className="text-white font-extrabold text-base md:text-lg">
+                {loading ? "جاري الإرسال..." : "إرسال كود التحقق"}
+              </span>
+            </button>
+          </form>
+        )}
 
-            {/* تفاصيل الرقم المرسل إليه وزر التعديل */}
-            <div className="flex items-center justify-center gap-2 text-sm text-[#7c634c] mb-7 font-medium">
-              <span>تم إرسال الكود إلى</span>
-              <span className="font-bold text-[#b71c1c] tracking-wider" dir="ltr">{phoneNumber}</span>
-              <button
-                type="button"
-                onClick={() => { setStep("PHONE"); setOtpCode(["", "", "", ""]); }}
-                className="text-xs text-[#9c5f2b] hover:text-[#d32f2f] flex items-center gap-1 font-semibold underline underline-offset-4 mr-1"
-              >
-                <Edit2 className="w-3 h-3" />
-                تعديل الرقم
-              </button>
+        {/* =====================================================================
+            الشاشة الثانية: كود الـ OTP (Overlays on 4-boxes & Timers)
+           ===================================================================== */}
+        {step === "OTP" && (
+          <div>
+            {/* زر تعديل الرقم في الصورة */}
+            <button
+              type="button"
+              onClick={() => { setStep("PHONE"); setOtpCode(["", "", "", ""]); }}
+              className="absolute z-20 cursor-pointer rounded-lg hover:bg-amber-100/40 transition-colors"
+              style={{
+                top: "49.0%",
+                left: "27.0%",
+                width: "13.5%",
+                height: "4.8%",
+              }}
+              title="تعديل الرقم"
+            />
+
+            {/* عرض رقم الهاتف الفعلي فوق الرقم المطبوع في الصورة */}
+            <div 
+              className="absolute z-10 flex items-center justify-start text-[#b71c1c] font-black text-sm md:text-base pointer-events-none"
+              style={{
+                top: "49.0%",
+                left: "42.0%",
+                width: "16.0%",
+                height: "4.8%",
+              }}
+              dir="ltr"
+            >
+              {phoneNumber}
             </div>
 
-            {errorMessage && (
-              <div className="mb-5 p-3 rounded-2xl bg-red-100/90 border border-red-300 text-red-700 text-xs font-semibold">
-                ⚠️ {errorMessage}
-              </div>
-            )}
-
-            {/* مربعات الإدخال الأربعة الكبيرة */}
-            <div className="flex justify-center gap-3.5 mb-7" dir="ltr">
+            {/* مربعات الإدخال الأربعة (تغطي المربعات 1 2 9 4 في الصورة) */}
+            <div 
+              className="absolute z-20 flex justify-between items-center"
+              style={{
+                top: "56.5%",
+                left: "28.5%",
+                width: "43.0%",
+                height: "11.2%",
+              }}
+              dir="ltr"
+            >
               {otpCode.map((digit, idx) => (
                 <input
                   key={idx}
@@ -336,249 +313,253 @@ export default function MerchantAuthPage() {
                   value={digit}
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(idx, e)}
-                  className="w-14 h-16 md:w-16 md:h-18 text-2xl md:text-3xl font-black text-center text-[#3a2818] bg-[#fdf9f0] border-2 border-[#e6d5b8] rounded-2xl focus:border-[#d32f2f] focus:bg-white focus:ring-4 focus:ring-[#d32f2f]/15 focus:outline-none transition-all shadow-inner"
+                  className="w-[21.5%] h-full text-2xl md:text-3xl font-black text-center text-[#3a2818] bg-[#fbf5e7] border-2 border-[#e0cca9] rounded-2xl focus:border-[#d32f2f] focus:bg-white focus:ring-4 focus:ring-[#d32f2f]/20 focus:outline-none transition-all shadow-inner"
                   autoFocus={idx === 0}
                 />
               ))}
             </div>
 
-            {/* عداد وقت انتهاء الكود (150 ثانية) */}
-            <div className="flex items-center justify-center gap-2 text-sm font-bold text-[#5c432d] mb-6">
-              <Clock className="w-4 h-4 text-[#d32f2f]" />
-              <span>ينتهي الكود خلال:</span>
-              <span className="text-[#d32f2f] font-mono text-base">{formatTime(countdown)}</span>
-              <span>دقيقة</span>
+            {/* عداد وقت انتهاء الكود (يغطي نص الوقت في الصورة بالوقت الحقيقي) */}
+            <div 
+              className="absolute z-20 flex items-center justify-center font-bold text-xs md:text-sm text-[#4a3420] pointer-events-none bg-[#fffaf0] rounded-lg px-2"
+              style={{
+                top: "76.4%",
+                left: "35.0%",
+                width: "30.0%",
+                height: "4.0%",
+              }}
+            >
+              <span>ينتهي الكود خلال:&nbsp;</span>
+              <span className="text-[#d32f2f] font-mono font-black text-sm md:text-base">{formatTime(countdown)}</span>
+              <span>&nbsp;دقيقة</span>
             </div>
 
-            {/* زر إعادة الإرسال المحمي بـ 60 ثانية */}
+            {/* زر إعادة الإرسال (فوق الزر الرمادي في الصورة) */}
             <button
               type="button"
               disabled={resendCooldown > 0 || loading}
               onClick={() => handleSendOtp()}
-              className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+              className={`absolute z-20 rounded-2xl flex items-center justify-center gap-2 font-bold text-xs md:text-sm transition-all cursor-pointer ${
                 resendCooldown > 0
-                  ? "bg-[#e5dcd0] text-[#8c7d6c] cursor-not-allowed"
-                  : "bg-white border-2 border-[#d32f2f] text-[#d32f2f] hover:bg-red-50 active:scale-[0.99] shadow-sm"
+                  ? "bg-[#9a918a] text-white/90 cursor-not-allowed shadow-inner"
+                  : "bg-[#d32f2f] text-white hover:brightness-110 shadow-lg active:scale-[0.98]"
               }`}
+              style={{
+                top: "80.4%",
+                left: "30.5%",
+                width: "39.0%",
+                height: "8.6%",
+              }}
             >
-              <Send className="w-4 h-4 -rotate-45" />
+              <Send className="w-4 h-4 text-white -rotate-45" />
               <span>
                 {resendCooldown > 0
                   ? `إعادة إرسال الكود خلال ${resendCooldown} ثانية`
                   : "إعادة إرسال كود جديد الآن"}
               </span>
             </button>
-
           </div>
-        </div>
-      )}
+        )}
 
-      {/* =========================================================================
-          الشاشة الثالثة: استكمال بيانات المتجر (Step 3: Register Store)
-         ========================================================================= */}
-      {step === "REGISTER_STORE" && (
-        <div className="relative z-10 w-full max-w-[580px] pt-[120px] transition-all duration-300">
-          <div className="bg-[#fffdf7]/95 backdrop-blur-sm border-2 border-[#eedec0] rounded-[38px] p-7 md:p-9 shadow-[0_20px_50px_rgba(110,60,20,0.2)] text-right">
-            
-            {/* الشريط العلوي مع زر العودة والشعار */}
-            <div className="flex items-center justify-between mb-4 border-b border-[#f0e2cb] pb-3">
-              <span className="text-xs font-bold text-[#8c6742] tracking-wide">
-                حواديت .. لكل أكلة حكاية
-              </span>
-              <button
-                type="button"
-                onClick={() => setStep("PHONE")}
-                className="px-3 py-1.5 rounded-xl bg-[#fdf5e6] hover:bg-[#faebd0] text-[#7a5732] text-xs font-bold flex items-center gap-1.5 border border-[#e6d5b8] transition-all"
-              >
-                <span>عودة</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+        {/* =====================================================================
+            الشاشة الثالثة: بيانات المتجر (Interactive Overlays on Store Form)
+           ===================================================================== */}
+        {step === "REGISTER_STORE" && (
+          <div>
+            {/* زر العودة في أعلى اليسار */}
+            <button
+              type="button"
+              onClick={() => setStep("PHONE")}
+              className="absolute z-20 cursor-pointer rounded-2xl hover:bg-amber-100/50 transition-colors"
+              style={{
+                top: "4.7%",
+                left: "4.6%",
+                width: "11.0%",
+                height: "6.5%",
+              }}
+              title="عودة للشاشة السابقة"
+            />
+
+            {/* 1. حقل اسم المتجر (يغطي خانة اسم المتجر في الصورة) */}
+            <div
+              className="absolute z-20"
+              style={{
+                top: "41.9%",
+                left: "24.8%",
+                width: "50.4%",
+                height: "7.4%",
+              }}
+            >
+              <input
+                type="text"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                placeholder="مثال: حلويات أم يوسف / كشري البرنس"
+                className="w-full h-full bg-[#fdf9f0]/95 hover:bg-white focus:bg-white px-5 text-sm md:text-base font-bold text-[#3a2818] rounded-2xl border-2 border-[#e3d0b1] focus:border-[#d32f2f] focus:outline-none focus:ring-4 focus:ring-[#d32f2f]/15 transition-all text-right shadow-inner"
+                autoFocus
+              />
             </div>
 
-            {/* بادج خطوة واحدة متبقية */}
-            <div className="flex justify-center mb-3">
-              <span className="px-4 py-1 rounded-full bg-[#d32f2f] text-white text-xs font-extrabold shadow-sm">
-                خطوة واحدة متبقية!
-              </span>
+            {/* 2. كروت اختيار نوع النشاط الثلاثة (مطبخ بيتي / محل تجاري / مطعم) */}
+            {/* مطبخ بيتي */}
+            <div
+              onClick={() => setMerchantType("HOME_KITCHEN")}
+              className={`absolute z-20 cursor-pointer rounded-2xl transition-all ${
+                merchantType === "HOME_KITCHEN"
+                  ? "border-[3px] border-[#e69500] bg-amber-500/10 shadow-md ring-2 ring-amber-400/40"
+                  : "hover:bg-amber-500/5"
+              }`}
+              style={{
+                top: "52.4%",
+                left: "25.9%",
+                width: "15.0%",
+                height: "14.4%",
+              }}
+            >
+              {merchantType === "HOME_KITCHEN" && (
+                <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-[#e69500] text-white rounded-full flex items-center justify-center text-xs shadow">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </span>
+              )}
             </div>
 
-            <h1 className="text-2xl font-extrabold text-[#3a2818] text-center mb-6">
-              أدخل بيانات نشاطك التجاري
-            </h1>
+            {/* محل تجاري */}
+            <div
+              onClick={() => setMerchantType("RETAIL_SHOP")}
+              className={`absolute z-20 cursor-pointer rounded-2xl transition-all ${
+                merchantType === "RETAIL_SHOP"
+                  ? "border-[3px] border-[#e69500] bg-amber-500/10 shadow-md ring-2 ring-amber-400/40"
+                  : "hover:bg-amber-500/5"
+              }`}
+              style={{
+                top: "52.4%",
+                left: "42.5%",
+                width: "15.0%",
+                height: "14.4%",
+              }}
+            >
+              {merchantType === "RETAIL_SHOP" && (
+                <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-[#e69500] text-white rounded-full flex items-center justify-center text-xs shadow">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </span>
+              )}
+            </div>
 
-            {errorMessage && (
-              <div className="mb-5 p-3 rounded-2xl bg-red-100/90 border border-red-300 text-red-700 text-xs font-semibold text-right">
-                ⚠️ {errorMessage}
-              </div>
-            )}
+            {/* مطعم */}
+            <div
+              onClick={() => setMerchantType("RESTAURANT")}
+              className={`absolute z-20 cursor-pointer rounded-2xl transition-all ${
+                merchantType === "RESTAURANT"
+                  ? "border-[3px] border-[#e69500] bg-amber-500/10 shadow-md ring-2 ring-amber-400/40"
+                  : "hover:bg-amber-500/5"
+              }`}
+              style={{
+                top: "52.4%",
+                left: "59.1%",
+                width: "15.0%",
+                height: "14.4%",
+              }}
+            >
+              {merchantType === "RESTAURANT" && (
+                <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-[#e69500] text-white rounded-full flex items-center justify-center text-xs shadow">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </span>
+              )}
+            </div>
 
-            <form onSubmit={handleRegisterStore} className="space-y-5">
+            {/* 3. حقل العنوان أو المنطقة */}
+            <div
+              className="absolute z-20"
+              style={{
+                top: "72.4%",
+                left: "24.8%",
+                width: "50.4%",
+                height: "7.4%",
+              }}
+            >
+              <input
+                type="text"
+                value={addressText}
+                onChange={(e) => setAddressText(e.target.value)}
+                placeholder="مثال: المعادي، شارع النصر، عمارة 4"
+                className="w-full h-full bg-[#fdf9f0]/95 hover:bg-white focus:bg-white px-5 text-sm md:text-base font-bold text-[#3a2818] rounded-2xl border-2 border-[#e3d0b1] focus:border-[#d32f2f] focus:outline-none focus:ring-4 focus:ring-[#d32f2f]/15 transition-all text-right shadow-inner"
+              />
+            </div>
+
+            {/* 4. زر إنشاء المتجر النهائي */}
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleRegisterStore}
+              className="absolute z-20 rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98] disabled:opacity-50"
+              style={{
+                top: "81.2%",
+                left: "28.7%",
+                width: "42.6%",
+                height: "8.0%",
+                background: "linear-gradient(to right, #d32f2f, #b71c1c)",
+                boxShadow: "0 6px 16px rgba(180, 25, 25, 0.4)",
+              }}
+            >
+              <span className="text-white font-extrabold text-sm md:text-base flex items-center gap-1.5">
+                <span>🚀</span>
+                <span>{loading ? "جاري الإنشاء..." : "إنشاء متجري والدخول للوحة التحكم ➕"}</span>
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* =====================================================================
+            شاشة النجاح والترحيب بالتاجر (Step 4: Success & Welcome Dashboard)
+           ===================================================================== */}
+        {step === "DASHBOARD" && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-[#fffdf7] border-2 border-[#eedec0] rounded-[34px] p-8 max-w-[480px] w-full text-center shadow-2xl space-y-4 animate-scale-up">
               
-              {/* 1. اسم المتجر */}
-              <div>
-                <label className="text-xs font-bold text-[#5c432d] flex items-center gap-1.5 mb-2 mr-1">
-                  <Store className="w-4 h-4 text-[#d32f2f]" />
-                  <span>اسم المتجر:</span>
-                </label>
-                <input
-                  type="text"
-                  value={storeName}
-                  onChange={(e) => setStoreName(e.target.value)}
-                  placeholder="مثال: كشري البرنس / بوتيك النور / مطبخ أم يوسف"
-                  className="w-full bg-[#fdf9f0] border-2 border-[#e6d5b8] rounded-2xl px-4 py-3 text-sm font-semibold text-[#3a2818] placeholder-[#b8a48e] focus:border-[#d32f2f] focus:bg-white focus:outline-none transition-all"
-                  required
-                />
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 border border-emerald-300 mx-auto">
+                <CheckCircle2 className="w-10 h-10" />
               </div>
 
-              {/* 2. كروت اختيار نوع النشاط الثلاثة */}
-              <div>
-                <label className="text-xs font-bold text-[#5c432d] flex items-center gap-1.5 mb-2 mr-1">
-                  <Sparkles className="w-4 h-4 text-[#d32f2f]" />
-                  <span>اختر نوع النشاط:</span>
-                </label>
+              <h2 className="text-2xl font-black text-[#3a2818]">
+                أهلاً بك يا بطل! تم الدخول بنجاح 🎉
+              </h2>
 
-                <div className="grid grid-cols-3 gap-2.5">
-                  
-                  {/* مطبخ بيتي */}
-                  <div
-                    onClick={() => setMerchantType("HOME_KITCHEN")}
-                    className={`cursor-pointer rounded-2xl p-3 text-center border-2 transition-all flex flex-col items-center justify-center relative ${
-                      merchantType === "HOME_KITCHEN"
-                        ? "border-[#e69500] bg-[#fff8e7] shadow-md scale-[1.02]"
-                        : "border-[#e6d5b8] bg-[#fdf9f0] hover:bg-white"
-                    }`}
-                  >
-                    {merchantType === "HOME_KITCHEN" && (
-                      <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#e69500] text-white rounded-full flex items-center justify-center text-[10px]">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </span>
-                    )}
-                    <Soup className="w-8 h-8 text-[#d32f2f] mb-1.5" />
-                    <span className="text-xs font-extrabold text-[#3a2818]">مطبخ بيتي</span>
-                  </div>
-
-                  {/* محل تجاري */}
-                  <div
-                    onClick={() => setMerchantType("RETAIL_SHOP")}
-                    className={`cursor-pointer rounded-2xl p-3 text-center border-2 transition-all flex flex-col items-center justify-center relative ${
-                      merchantType === "RETAIL_SHOP"
-                        ? "border-[#e69500] bg-[#fff8e7] shadow-md scale-[1.02]"
-                        : "border-[#e6d5b8] bg-[#fdf9f0] hover:bg-white"
-                    }`}
-                  >
-                    {merchantType === "RETAIL_SHOP" && (
-                      <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#e69500] text-white rounded-full flex items-center justify-center text-[10px]">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </span>
-                    )}
-                    <ShoppingBag className="w-8 h-8 text-[#2563eb] mb-1.5" />
-                    <span className="text-xs font-extrabold text-[#3a2818]">محل تجاري</span>
-                  </div>
-
-                  {/* مطعم */}
-                  <div
-                    onClick={() => setMerchantType("RESTAURANT")}
-                    className={`cursor-pointer rounded-2xl p-3 text-center border-2 transition-all flex flex-col items-center justify-center relative ${
-                      merchantType === "RESTAURANT"
-                        ? "border-[#e69500] bg-[#fff8e7] shadow-md scale-[1.02]"
-                        : "border-[#e6d5b8] bg-[#fdf9f0] hover:bg-white"
-                    }`}
-                  >
-                    {merchantType === "RESTAURANT" && (
-                      <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#e69500] text-white rounded-full flex items-center justify-center text-[10px]">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </span>
-                    )}
-                    <UtensilsCrossed className="w-8 h-8 text-[#e69500] mb-1.5" />
-                    <span className="text-xs font-extrabold text-[#3a2818]">مطعم</span>
-                  </div>
-
+              <div className="p-4 rounded-2xl bg-[#fbf5e8] border border-[#e8dac0] text-right space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[#7c634c]">اسم المتجر:</span>
+                  <span className="font-bold text-[#3a2818]">{merchantData?.name || "متجرك في حواديت"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#7c634c]">نوع النشاط:</span>
+                  <span className="font-bold text-[#d32f2f]">
+                    {merchantData?.merchant_type === "RESTAURANT" ? "مطعم 🍔" :
+                     merchantData?.merchant_type === "RETAIL_SHOP" ? "محل تجاري 🛍️" : "مطبخ بيتي 🍲"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#7c634c]">حالة الاعتماد:</span>
+                  <span className="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-lg text-xs">
+                    {merchantData?.status || "في انتظار اعتماد الإدارة"}
+                  </span>
                 </div>
               </div>
 
-              {/* 3. العنوان والمنطقة */}
-              <div>
-                <label className="text-xs font-bold text-[#5c432d] flex items-center gap-1.5 mb-2 mr-1">
-                  <MapPin className="w-4 h-4 text-[#d32f2f]" />
-                  <span>العنوان أو المنطقة:</span>
-                </label>
-                <input
-                  type="text"
-                  value={addressText}
-                  onChange={(e) => setAddressText(e.target.value)}
-                  placeholder="مثال: المعادي، شارع النصر، عمارة 4"
-                  className="w-full bg-[#fdf9f0] border-2 border-[#e6d5b8] rounded-2xl px-4 py-3 text-sm font-semibold text-[#3a2818] placeholder-[#b8a48e] focus:border-[#d32f2f] focus:bg-white focus:outline-none transition-all"
-                  required
-                />
-              </div>
+              <p className="text-xs text-[#7c634c]">
+                تم حفظ التوكن بنجاح. نحن الآن جاهزون للمرحلة الثانية: إعدادات المتجر وإدارة المنتجات والمنيو!
+              </p>
 
-              {/* زر الإنشاء النهائي */}
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#d32f2f] to-[#b71c1c] text-white font-bold text-base md:text-lg shadow-[0_8px_20px_rgba(211,47,47,0.35)] hover:shadow-[0_10px_25px_rgba(211,47,47,0.45)] hover:brightness-105 active:scale-[0.99] transition-all flex items-center justify-center gap-2 pt-3 disabled:opacity-60"
+                onClick={() => alert("سيتم بناء صفحة إدارة المنتجات والمنيو في المرحلة القادمة!")}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold text-sm shadow-md hover:brightness-105 transition-all"
               >
-                <span>🚀 إنشاء متجري والدخول للوحة التحكم ➕</span>
+                الانتقال لإعدادات المتجر والمنيو ⬅️
               </button>
 
-            </form>
-
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          شاشة النجاح والدخول للوحة التحكم (Step 4: Success & Dashboard Bridge)
-         ========================================================================= */}
-      {step === "DASHBOARD" && (
-        <div className="relative z-10 w-full max-w-[540px] pt-[140px] transition-all duration-300">
-          <div className="bg-[#fffdf7]/95 backdrop-blur-sm border-2 border-[#eedec0] rounded-[38px] p-8 md:p-10 shadow-[0_20px_50px_rgba(110,60,20,0.2)] text-center space-y-5">
-            
-            <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 border border-emerald-300">
-                <CheckCircle2 className="w-10 h-10" />
-              </div>
             </div>
-
-            <h2 className="text-2xl font-black text-[#3a2818]">
-              أهلاً بك يا بطل! تم الدخول بنجاح 🎉
-            </h2>
-
-            <div className="p-4 rounded-2xl bg-[#fbf5e8] border border-[#e8dac0] text-right space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-[#7c634c]">اسم المتجر:</span>
-                <span className="font-bold text-[#3a2818]">{merchantData?.name || "متجرك في حواديت"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#7c634c]">نوع النشاط:</span>
-                <span className="font-bold text-[#d32f2f]">
-                  {merchantData?.merchant_type === "RESTAURANT" ? "مطعم 🍔" :
-                   merchantData?.merchant_type === "RETAIL_SHOP" ? "محل تجاري 🛍️" : "مطبخ بيتي 🍲"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#7c634c]">حالة النشاط:</span>
-                <span className="font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-lg text-xs">
-                  {merchantData?.status || "في انتظار اعتماد الإدارة"}
-                </span>
-              </div>
-            </div>
-
-            <p className="text-xs text-[#7c634c]">
-              تم تسجيل التوكن بنجاح في متصفحك. نحن الآن جاهزون للمرحلة التالية: إعدادات المتجر ومنيو المنتجات!
-            </p>
-
-            <button
-              onClick={() => alert("سيتم فتح شاشة إدارة المنتجات في المرحلة 2!")}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold text-base shadow-md hover:brightness-105 transition-all"
-            >
-              الانتقال لإعدادات المتجر والمنيو ⬅️
-            </button>
-
           </div>
-        </div>
-      )}
+        )}
 
+      </div>
     </main>
   );
 }
