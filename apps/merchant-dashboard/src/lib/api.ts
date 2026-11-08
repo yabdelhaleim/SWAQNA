@@ -12,6 +12,10 @@ export interface ApiResponse<T = any> {
   user?: any;
   merchant?: any;
   data?: any;
+  product?: any;
+  products?: any[];
+  categories?: any[];
+  available_modifier_groups?: any[];
   business_hours?: any[];
   url?: string;
   debug_code?: string;
@@ -194,6 +198,99 @@ export const merchantApi = {
    */
   async uploadMedia(token: string, formData: FormData): Promise<ApiResponse> {
     const res = await fetch(`${API_BASE_URL}/settings/media`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    return res.json();
+  },
+
+  // =========================================================================
+  // إدارة قائمة الطعام والمنتجات (Menu & Products Catalog)
+  // =========================================================================
+
+  /**
+   * جلب قائمة الطعام بالكامل مع التصنيفات والإضافات
+   */
+  async getMenu(token: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * إضافة طبق جديد في المنيو
+   */
+  async createProduct(token: string, data: any): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/products`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  /**
+   * تعديل طبق موجود
+   */
+  async updateProduct(token: string, id: string, data: any): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/products/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  /**
+   * تبديل توفر الطبق (متاح اليوم / غير متاح)
+   */
+  async toggleProductAvailability(token: string, id: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/products/${id}/toggle-availability`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * حذف طبق من القائمة
+   */
+  async deleteProduct(token: string, id: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/products/${id}`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * رفع صورة طبق
+   */
+  async uploadDishImage(token: string, formData: FormData): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/menu/upload-image`, {
       method: "POST",
       headers: {
         Accept: "application/json",
