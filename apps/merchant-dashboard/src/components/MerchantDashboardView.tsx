@@ -34,7 +34,7 @@ interface MerchantDashboardViewProps {
   token: string;
   initialMerchant?: any;
   user?: any;
-  onNavigate?: (view: "settings" | "menu") => void;
+  onNavigate?: (view: "settings" | "menu" | "orders") => void;
   onLogout: () => void;
 }
 
@@ -716,8 +716,11 @@ export default function MerchantDashboardView({
       <button
         type="button"
         onClick={() => {
-          setActiveMenu("orders");
-          showToast("صفحة إدارة الطلبات الحية ستتوفر في المرحلة القادمة! 📋");
+          if (onNavigate) {
+            onNavigate("orders");
+          } else {
+            setActiveMenu("orders");
+          }
         }}
         className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
         style={{ top: "37.5%", right: "1.2%", width: "15.0%", height: "5.0%" }}

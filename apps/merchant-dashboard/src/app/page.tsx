@@ -6,13 +6,14 @@ import { Send, ArrowRight, Check, CheckCircle2, Clock } from "lucide-react";
 import { merchantApi } from "@/lib/api";
 import MerchantDashboardView from "@/components/MerchantDashboardView";
 import MerchantMenuView from "@/components/MerchantMenuView";
+import MerchantOrdersView from "@/components/MerchantOrdersView";
 
 type Step = "PHONE" | "OTP" | "REGISTER_STORE" | "DASHBOARD";
 type MerchantType = "RESTAURANT" | "RETAIL_SHOP" | "HOME_KITCHEN";
 
 export default function MerchantAuthPage() {
   const [step, setStep] = useState<Step>("PHONE");
-  const [currentDashboardView, setCurrentDashboardView] = useState<"settings" | "menu">("menu");
+  const [currentDashboardView, setCurrentDashboardView] = useState<"settings" | "menu" | "orders">("orders");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpCode, setOtpCode] = useState(["", "", "", ""]);
   const [token, setToken] = useState<string | null>(null);
@@ -238,10 +239,18 @@ export default function MerchantAuthPage() {
       )}
 
       {/* =========================================================================
-          عند الدخول للوحة التحكم: عرض شاشة إعدادات المتجر أو المنيو (Step: DASHBOARD)
+          عند الدخول للوحة التحكم: عرض شاشة الطلبات أو المنيو أو الإعدادات (Step: DASHBOARD)
          ========================================================================= */}
       {step === "DASHBOARD" ? (
-        currentDashboardView === "menu" ? (
+        currentDashboardView === "orders" ? (
+          <MerchantOrdersView
+            token={token || "mock-token"}
+            storeName={merchantData?.name || "مطبخ أم أحمد للأكل البيتي"}
+            user={{ full_name: "الشيف أم أحمد" }}
+            onNavigate={(v) => setCurrentDashboardView(v)}
+            onLogout={handleLogout}
+          />
+        ) : currentDashboardView === "menu" ? (
           <MerchantMenuView
             token={token || "mock-token"}
             storeName={merchantData?.name || "مطبخ أم أحمد للأكل البيتي"}

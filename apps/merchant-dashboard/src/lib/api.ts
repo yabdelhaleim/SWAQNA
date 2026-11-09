@@ -12,6 +12,9 @@ export interface ApiResponse<T = any> {
   user?: any;
   merchant?: any;
   data?: any;
+  order?: any;
+  orders?: any[];
+  stats?: any;
   product?: any;
   products?: any[];
   categories?: any[];
@@ -293,6 +296,114 @@ export const merchantApi = {
         Authorization: `Bearer ${token}`,
       },
       body: formData,
+    });
+    return res.json();
+  },
+
+  /**
+   * =========================================================================
+   * مسارات إدارة الطلبات (Order Management API)
+   * =========================================================================
+   */
+
+  /**
+   * جلب قائمة الطلبات مع إمكانية الفلترة بالحالة
+   */
+  async getOrders(token: string, status?: string): Promise<ApiResponse> {
+    const url = status
+      ? `${API_BASE_URL}/orders?status=${encodeURIComponent(status)}`
+      : `${API_BASE_URL}/orders`;
+    const res = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * جلب إحصائيات الطلبات السريعة اليومية
+   */
+  async getOrderStats(token: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/orders/stats`, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * جلب تفاصيل طلب محدد
+   */
+  async getOrder(token: string, id: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/orders/${id}`, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * قبول طلب قيد الانتظار وتحديد مدة التحضير
+   */
+  async acceptOrder(token: string, id: string, prepTimeMinutes?: number): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/orders/${id}/accept`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ prep_time_minutes: prepTimeMinutes }),
+    });
+    return res.json();
+  },
+
+  /**
+   * رفض طلب مع كتابة السبب
+   */
+  async rejectOrder(token: string, id: string, rejectionReason: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/orders/${id}/reject`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ rejection_reason: rejectionReason }),
+    });
+    return res.json();
+  },
+
+  /**
+   * تعيين حالة الطلب إلى جاهز للتسليم
+   */
+  async markOrderReady(token: string, id: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/orders/${id}/ready`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * إنشاء طلب تجريبي للتجربة والمعاينة
+   */
+  async createTestOrder(token: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/orders/create-test-order`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
     return res.json();
   },

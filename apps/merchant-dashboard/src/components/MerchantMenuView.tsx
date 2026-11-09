@@ -40,7 +40,7 @@ interface MerchantMenuViewProps {
   token: string;
   storeName?: string;
   user?: any;
-  onNavigate: (view: "settings" | "menu") => void;
+  onNavigate: (view: "settings" | "menu" | "orders") => void;
   onLogout: () => void;
 }
 
@@ -650,10 +650,10 @@ export default function MerchantMenuView({
 
       <button
         type="button"
-        onClick={() => showToast("صفحة إدارة الطلبات ستتوفر في المرحلة القادمة! 📋")}
+        onClick={() => onNavigate("orders")}
         className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
         style={{ top: "37.5%", right: "1.2%", width: "15.0%", height: "5.0%" }}
-        title="الطلبات"
+        title="إدارة الطلبات"
       />
 
       <button
