@@ -904,7 +904,7 @@ export default function MerchantOrdersView({
            ========================================================================= */}
         <div className="mt-auto py-3 px-6 bg-[#f6edd9] border-t border-[#e6d6bc] flex items-center justify-between text-xs font-bold text-stone-600">
           <span>2025 © حواديت | جميع الحقوق محفوظة</span>
-          <span className="text-[#8c2b18] font-black">حواديت لي .. لكل أكلة حكاية</span>
+          <span className="text-[#8c2b18] font-black">حواديت .. لكل أكلة حكاية</span>
         </div>
       </div>
 
