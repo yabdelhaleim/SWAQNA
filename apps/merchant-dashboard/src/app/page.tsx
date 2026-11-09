@@ -7,13 +7,14 @@ import { merchantApi } from "@/lib/api";
 import MerchantDashboardView from "@/components/MerchantDashboardView";
 import MerchantMenuView from "@/components/MerchantMenuView";
 import MerchantOrdersView from "@/components/MerchantOrdersView";
+import MerchantReelsView from "@/components/MerchantReelsView";
 
 type Step = "PHONE" | "OTP" | "REGISTER_STORE" | "DASHBOARD";
 type MerchantType = "RESTAURANT" | "RETAIL_SHOP" | "HOME_KITCHEN";
 
 export default function MerchantAuthPage() {
   const [step, setStep] = useState<Step>("PHONE");
-  const [currentDashboardView, setCurrentDashboardView] = useState<"settings" | "menu" | "orders">("orders");
+  const [currentDashboardView, setCurrentDashboardView] = useState<"settings" | "menu" | "orders" | "reels">("orders");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpCode, setOtpCode] = useState(["", "", "", ""]);
   const [token, setToken] = useState<string | null>(null);
@@ -242,7 +243,15 @@ export default function MerchantAuthPage() {
           عند الدخول للوحة التحكم: عرض شاشة الطلبات أو المنيو أو الإعدادات
          ========================================================================= */}
       {step === "DASHBOARD" ? (
-        currentDashboardView === "orders" ? (
+        currentDashboardView === "reels" ? (
+          <MerchantReelsView
+            token={token || "mock-token"}
+            storeName={merchantData?.name || "مطبخ أم أحمد للأكل البيتي"}
+            user={{ full_name: "الشيف أم أحمد" }}
+            onNavigate={(v) => setCurrentDashboardView(v)}
+            onLogout={handleLogout}
+          />
+        ) : currentDashboardView === "orders" ? (
           <MerchantOrdersView
             token={token || "mock-token"}
             storeName={merchantData?.name || "مطبخ أم أحمد للأكل البيتي"}

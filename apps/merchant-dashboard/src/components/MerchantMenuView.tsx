@@ -58,7 +58,7 @@ interface MerchantMenuViewProps {
   token: string;
   storeName?: string;
   user?: any;
-  onNavigate: (view: "settings" | "menu" | "orders") => void;
+  onNavigate: (view: "settings" | "menu" | "orders" | "reels") => void;
   onLogout: () => void;
 }
 
@@ -667,7 +667,22 @@ export default function MerchantMenuView({
               <span>قائمة الطعام</span>
             </button>
 
-            {/* 4. العملاء */}
+            {/* 4. فيديوهات الريلز */}
+            <button
+              type="button"
+              onClick={() => onNavigate("reels")}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
+            >
+              <div className="flex items-center gap-3">
+                <Film className="w-4 h-4 text-red-400" />
+                <span>فيديوهات الريلز 🎬</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold">
+                جديد
+              </span>
+            </button>
+
+            {/* 5. العملاء */}
             <button
               type="button"
               onClick={() => showToast("شاشة سجل العملاء قيد التطوير")}
