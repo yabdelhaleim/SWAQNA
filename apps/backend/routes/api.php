@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\v1\Merchant\AuthController as MerchantAuthController;
 use App\Http\Controllers\Api\v1\Merchant\MenuController as MerchantMenuController;
 use App\Http\Controllers\Api\v1\Merchant\OrderController as MerchantOrderController;
+use App\Http\Controllers\Api\v1\Merchant\ReelController as MerchantReelController;
 use App\Http\Controllers\Api\v1\Merchant\SettingsController as MerchantSettingsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -71,6 +72,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/accept', [MerchantOrderController::class, 'accept']);
             Route::post('/{id}/reject', [MerchantOrderController::class, 'reject']);
             Route::patch('/{id}/ready', [MerchantOrderController::class, 'markReady']);
+        });
+
+        // إدارة الفيديوهات والريلز (Reels Management)
+        Route::prefix('reels')->middleware(['auth:sanctum', 'merchant'])->group(function () {
+            Route::get('/', [MerchantReelController::class, 'index']);
+            Route::post('/', [MerchantReelController::class, 'store']);
+            Route::get('/{id}', [MerchantReelController::class, 'show']);
+            Route::patch('/{id}/toggle-status', [MerchantReelController::class, 'toggleStatus']);
+            Route::delete('/{id}', [MerchantReelController::class, 'destroy']);
         });
 
     });
