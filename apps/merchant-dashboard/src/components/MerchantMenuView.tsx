@@ -17,6 +17,15 @@ import {
   Users,
   Calendar,
   ChevronDown,
+  Home,
+  ClipboardList,
+  UtensilsCrossed,
+  Settings,
+  LogOut,
+  Bell,
+  Store,
+  Layers,
+  Sparkles,
 } from "lucide-react";
 import { merchantApi } from "@/lib/api";
 
@@ -33,7 +42,11 @@ interface DishItem {
   servings_count: string;
   requires_preorder: boolean;
   variants?: Array<{ id?: string; name: string; price: number; is_available?: boolean }>;
-  modifier_groups?: Array<{ id?: string; name: string; items: Array<{ id?: string; name: string; additional_price: number }> }>;
+  modifier_groups?: Array<{
+    id?: string;
+    name: string;
+    items: Array<{ id?: string; name: string; additional_price: number }>;
+  }>;
 }
 
 interface MerchantMenuViewProps {
@@ -48,9 +61,10 @@ const INITIAL_DISHES: DishItem[] = [
   {
     id: "dish-1",
     name: "محشي مشكل بيتي بالسمنة البلدي",
-    description: "محشي مشكل بيتي بالسمنة البلدي الفاخرة",
+    description: "محشي مشكل بيتي بالسمنة البلدي الفاخرة على أصوله",
     base_price: 180,
     category_name: "محاشي",
+    image_url: "/images/assets/dish-tagine.jpg",
     is_available: true,
     prep_time_minutes: 90,
     servings_count: "3-4 أفراد",
@@ -63,9 +77,10 @@ const INITIAL_DISHES: DishItem[] = [
   {
     id: "dish-2",
     name: "طاجن بامية بلدي باللحمة الضاني",
-    description: "طاجن بامية بلدي باللحمة الضاني طازجة على أصولها",
+    description: "طاجن بامية بلدي باللحمة الضاني طازجة على أصولها بالفرن البلدي",
     base_price: 220,
     category_name: "طواجن",
+    image_url: "/images/assets/dish-koshary.jpg",
     is_available: true,
     prep_time_minutes: 60,
     servings_count: "يكفي فردين",
@@ -89,26 +104,26 @@ export default function MerchantMenuView({
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Modal State (Default open as in the design)
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(true);
-  const [editingDishId, setEditingDishId] = useState<string | null>("dish-1");
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [editingDishId, setEditingDishId] = useState<string | null>(null);
 
   // Form Fields
-  const [formName, setFormName] = useState<string>("محشي مشكل بيتي");
-  const [formDescription, setFormDescription] = useState<string>("محشي مشكل بيتي بالسمنة البلدي");
+  const [formName, setFormName] = useState<string>("");
+  const [formDescription, setFormDescription] = useState<string>("");
   const [formPrice, setFormPrice] = useState<number>(180);
-  const [formCategory, setFormCategory] = useState<string>("أطباق رئيسية");
+  const [formCategory, setFormCategory] = useState<string>("طواجن");
   const [formServings, setFormServings] = useState<string>("3-4 أفراد");
-  const [formPrepTime, setFormPrepTime] = useState<number>(90);
+  const [formPrepTime, setFormPrepTime] = useState<number>(60);
   const [selectedVariant, setSelectedVariant] = useState<string>("وسط");
-  const [selectedModifiers, setSelectedModifiers] = useState<string[]>(["أبيض", "بسمتي", "شطة"]);
+  const [selectedModifiers, setSelectedModifiers] = useState<string[]>(["أبيض", "شطة"]);
 
   // UI state
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // جلب قائمة الطعام والمنتجات من الباك إند بواسطة Eager Loading
+  // جلب قائمة الطعام من الباك إند بواسطة Eager Loading
   useEffect(() => {
     let isMounted = true;
     const fetchMenu = async () => {
@@ -139,7 +154,7 @@ export default function MerchantMenuView({
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 4000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   // فتح نافذة إضافة طبق جديد
@@ -147,7 +162,7 @@ export default function MerchantMenuView({
     setEditingDishId(null);
     setFormName("");
     setFormDescription("");
-    setFormPrice(100);
+    setFormPrice(150);
     setFormCategory("طواجن");
     setFormServings("3-4 أفراد");
     setFormPrepTime(60);
@@ -162,7 +177,7 @@ export default function MerchantMenuView({
     setFormName(dish.name);
     setFormDescription(dish.description || "");
     setFormPrice(dish.base_price);
-    setFormCategory(dish.category_name || "أطباق رئيسية");
+    setFormCategory(dish.category_name || "طواجن");
     setFormServings(dish.servings_count || "3-4 أفراد");
     setFormPrepTime(dish.prep_time_minutes || 60);
     setIsModalOpen(true);
@@ -180,7 +195,7 @@ export default function MerchantMenuView({
         showToast(res.message || "تم تغيير حالة توفر الطبق بنجاح!");
       }
     } catch (e) {
-      showToast("تم تحديث حالة التوفر محلياً.");
+      showToast("تم تحديث حالة التوفر.");
     }
   };
 
@@ -191,7 +206,7 @@ export default function MerchantMenuView({
     );
   };
 
-  // حفظ الطبق (إضافة أو تعديل) في الباك إند
+  // حفظ الطبق (إضافة أو تعديل)
   const handleSaveDish = async () => {
     if (!formName.trim()) {
       showToast("يرجى إدخال اسم الطبق.", "error");
@@ -239,6 +254,7 @@ export default function MerchantMenuView({
             prep_time_minutes: formPrepTime,
             servings_count: formServings,
             requires_preorder: formPrepTime >= 90,
+            image_url: "/images/assets/dish-tagine.jpg",
           };
           setDishes((prev) => [newDish, ...prev]);
         }
@@ -259,14 +275,16 @@ export default function MerchantMenuView({
 
     setDishes((prev) => prev.filter((d) => d.id !== dishId));
     try {
-      await merchantApi.deleteProduct(token, dishId);
-      showToast("تم حذف الطبق من القائمة بنجاح.");
+      if (!dishId.startsWith("dish-")) {
+        await merchantApi.deleteProduct(token, dishId);
+      }
+      showToast("تم حذف الطبق من القائمة.");
     } catch (e) {
-      showToast("تم حذف الطبق.");
+      showToast("تم حذف الطبق من القائمة.");
     }
   };
 
-  // تصفية الأطباق
+  // Filter dishes
   const filteredDishes = dishes.filter((dish) => {
     const matchesCat =
       selectedCategory === "الكل" ||
@@ -279,430 +297,509 @@ export default function MerchantMenuView({
   });
 
   return (
-    <div className="relative w-full h-full select-none overflow-hidden font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#faf5eb] text-[#3a2818] font-sans selection:bg-[#d32f2f] selection:text-white">
       {/* =========================================================================
-          الخلفية الرسمية المصممة (Base Canvas Visual Asset) - ملء الشاشة بالكامل
+          Main Content Column
          ========================================================================= */}
-      <Image
-        src="/images/menu-design.jpg"
-        alt="Hawadeet Menu & Catalog Management"
-        fill
-        priority
-        className="object-fill pointer-events-none"
-      />
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto overflow-x-hidden relative">
+        {/* Top Header Bar */}
+        <div className="w-full bg-[#f6edd9] border-b border-[#e6d6bc] px-6 py-3.5 flex items-center justify-between shadow-xs z-10">
+          {/* Header Left: Notifications, Profile */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => showToast("لا توجد إشعارات جديدة حالياً")}
+              className="relative p-2 rounded-2xl bg-[#fffdfa] border border-[#e8dac1] hover:border-[#d32f2f] text-[#5c3a16] shadow-xs active:scale-95 transition-all cursor-pointer"
+            >
+              <Bell className="w-5 h-5 text-[#8c2b18]" />
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#d32f2f] text-white text-[11px] font-black rounded-full flex items-center justify-center border-2 border-white shadow">
+                3
+              </span>
+            </button>
 
-      {/* =========================================================================
-          Toast Notifications Banner
-         ========================================================================= */}
-      {toastMessage && (
-        <div
-          className={`absolute top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-bold animate-bounce ${
-            toastMessage.type === "success"
-              ? "bg-emerald-600 text-white border border-emerald-400"
-              : "bg-red-600 text-white border border-red-400"
-          }`}
-        >
-          {toastMessage.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-200" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-red-200" />
-          )}
-          <span>{toastMessage.text}</span>
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-[#fffdfa] border border-[#e8dac1] shadow-xs">
+              <div className="relative w-8 h-8 rounded-full overflow-hidden border border-[#d97706]/40">
+                <Image
+                  src="/images/assets/chef-logo.jpg"
+                  alt="Avatar"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="flex flex-col text-right">
+                <span className="text-xs font-black text-[#3a2818] leading-tight">
+                  أحمد محمود
+                </span>
+                <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  مدير المتجر
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Header Right: Store Title & Icon */}
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm md:text-base font-black text-[#3a2818]">
+              {storeName}
+            </span>
+            <div className="w-9 h-9 rounded-2xl bg-[#8c2b18]/10 border border-[#8c2b18]/20 flex items-center justify-center text-[#8c2b18]">
+              <Store className="w-5 h-5" />
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* =========================================================================
-          شريط الهيدر العلوي (Top Header Bar)
-         ========================================================================= */}
-      <button
-        type="button"
-        onClick={() => showToast("لا توجد إشعارات جديدة حالياً.")}
-        className="absolute z-20 cursor-pointer rounded-full hover:scale-105 active:scale-95 transition-all"
-        style={{ top: "2.8%", left: "2.6%", width: "3.4%", height: "5.1%" }}
-        title="الإشعارات (3)"
-      />
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div
+            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-sm font-bold animate-bounce ${
+              toastMessage.type === "success"
+                ? "bg-emerald-600 text-white border border-emerald-400"
+                : "bg-red-600 text-white border border-red-400"
+            }`}
+          >
+            {toastMessage.type === "success" ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-200" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-200" />
+            )}
+            <span>{toastMessage.text}</span>
+          </div>
+        )}
 
-      <div
-        className="absolute z-20 flex items-center cursor-pointer rounded-xl hover:bg-black/5"
-        style={{ top: "2.4%", left: "6.8%", width: "13.5%", height: "5.8%" }}
-        title="أحمد محمود - مدير المطعم"
-      />
+        {/* Main Body */}
+        <div className="p-6 space-y-6">
+          {/* Action & Filter Bar */}
+          <div className="bg-[#fffdf9] border-2 border-[#eddcc4] rounded-3xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث في الأطباق..."
+                className="w-full bg-[#fdfaf3] hover:bg-white focus:bg-white text-xs font-bold text-[#3a2818] rounded-2xl border-2 border-[#eddcc4] focus:border-[#d32f2f] focus:outline-none focus:ring-2 focus:ring-[#d32f2f]/15 py-2.5 pr-9 pl-3 text-right transition-all shadow-inner"
+              />
+              <Search className="w-4 h-4 text-[#8c2b18] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
 
-      <div
-        className="absolute z-20 flex items-center justify-end pr-2 text-xs font-bold text-[#3a2818] cursor-pointer hover:bg-black/5 rounded-xl transition-all"
-        style={{ top: "2.5%", right: "23.5%", width: "17.0%", height: "5.5%" }}
-        title="المتجر الحالي"
-      >
-        <span className="truncate">{storeName}</span>
+            {/* Category Pills */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                    selectedCategory === cat
+                      ? "bg-[#d32f2f] text-white shadow-md shadow-red-900/20"
+                      : "bg-[#fffdfa] border-2 border-[#eddcc4] text-[#5c3a16] hover:bg-amber-50"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Add New Dish Button */}
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#d32f2f] to-[#b71c1c] text-white text-xs font-black shadow-md hover:shadow-lg hover:brightness-105 active:scale-95 transition-all cursor-pointer mr-auto"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>إضافة طبق جديد</span>
+            </button>
+          </div>
+
+          {/* Dishes Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredDishes.length === 0 ? (
+              <div className="col-span-full py-16 text-center bg-[#fffdf9] border-2 border-dashed border-[#e6d6bc] rounded-3xl">
+                <p className="text-sm font-bold text-stone-500">
+                  لا توجد أطباق تطابق البحث المختار حالياً.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleOpenAddModal}
+                  className="mt-3 text-xs font-bold text-[#d32f2f] hover:underline cursor-pointer"
+                >
+                  اضغط هنا لإضافة طبق جديد إلى المنيو
+                </button>
+              </div>
+            ) : (
+              filteredDishes.map((dish) => (
+                <div
+                  key={dish.id}
+                  className={`bg-[#fffefb] border-2 rounded-3xl p-4.5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between ${
+                    dish.is_available
+                      ? "border-[#eddcc4] hover:border-[#d97706]/60"
+                      : "border-stone-300 opacity-70 bg-stone-50"
+                  }`}
+                >
+                  <div>
+                    {/* Dish Image with Price Badge */}
+                    <div className="relative w-full h-44 rounded-2xl overflow-hidden border-2 border-[#eddcc4] shadow-xs mb-3">
+                      <Image
+                        src={dish.image_url || "/images/assets/dish-tagine.jpg"}
+                        alt={dish.name}
+                        fill
+                        className="object-cover"
+                      />
+                      {/* Price Badge */}
+                      <div className="absolute top-2.5 right-2.5 bg-[#8c2b18] text-white text-xs font-black px-3 py-1 rounded-xl shadow-md border border-amber-300/30">
+                        {dish.base_price} ج.م
+                      </div>
+                      {/* Category Badge */}
+                      {dish.category_name && (
+                        <div className="absolute bottom-2.5 right-2.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-0.5 rounded-lg">
+                          {dish.category_name}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dish Name & Description */}
+                    <h3 className="text-base font-black text-[#3a2818] mb-1">
+                      {dish.name}
+                    </h3>
+                    <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed mb-3">
+                      {dish.description}
+                    </p>
+
+                    {/* Info Pills */}
+                    <div className="flex flex-wrap gap-2 mb-3 text-[11px] font-bold text-[#5c3a16]">
+                      <span className="px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5 text-[#e67e22]" />
+                        {dish.servings_count || "3-4 أفراد"}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-1 text-blue-900">
+                        <Clock className="w-3.5 h-3.5 text-blue-600" />
+                        تجهيز: {dish.prep_time_minutes} دقيقة
+                      </span>
+                      {dish.requires_preorder && (
+                        <span className="px-2.5 py-1 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-900 flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-rose-600" />
+                          حجز مسبق
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Bottom: Availability Toggle & Action Buttons */}
+                  <div className="pt-3 border-t border-[#f2e5d3] space-y-2.5">
+                    {/* Availability Switch */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-[#3a2818]">
+                        {dish.is_available ? "متاح للطلب اليوم" : "غير متوفر اليوم"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAvailability(dish.id)}
+                        className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                          dish.is_available ? "bg-emerald-600" : "bg-stone-300"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                            dish.is_available ? "right-1" : "right-6"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Action Buttons: Edit, Delete, Reels */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(dish)}
+                        className="flex-1 py-1.5 rounded-xl border border-[#eddcc4] hover:bg-amber-50 text-[#5c3a16] text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>تعديل</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDish(dish.id)}
+                        className="py-1.5 px-2.5 rounded-xl border border-red-200 hover:bg-red-50 text-red-600 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        title="حذف الطبق"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => showToast("سيتم فتح نافذة تصوير وربط فيديو ريلز للطبق! 🎬")}
+                        className="flex-1 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 text-[#8c2b18] text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Film className="w-3.5 h-3.5" />
+                        <span>ربط ريلز</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-auto py-3 px-6 bg-[#f6edd9] border-t border-[#e6d6bc] flex items-center justify-between text-xs font-bold text-stone-600">
+          <span>2025 © حواديت | جميع الحقوق محفوظة</span>
+          <span className="text-[#8c2b18] font-black">حواديت لي .. لكل أكلة حكاية</span>
+        </div>
       </div>
 
       {/* =========================================================================
-          شريط البحث والتصنيفات والزر الرئيسي (Filter & Action Bar)
+          Right Sidebar (Fixed in RTL layout on the right)
          ========================================================================= */}
-      <div
-        className="absolute z-20 flex items-center"
-        style={{ top: "18.8%", left: "1.5%", width: "22.5%", height: "5.8%" }}
-      >
-        <div className="relative w-full h-full bg-white/95 rounded-2xl border border-[#ded4c5] hover:border-[#d32f2f] focus-within:border-[#d32f2f] focus-within:ring-2 focus-within:ring-[#d32f2f]/20 transition-all flex items-center px-3 shadow-xs">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث في الأطباق..."
-            className="w-full bg-transparent text-xs font-bold text-[#3a2818] outline-none text-right pr-1"
+      <aside className="w-60 h-screen bg-[#38140c] text-white flex flex-col justify-between shrink-0 shadow-2xl relative select-none">
+        <div>
+          {/* Logo Banner */}
+          <div className="relative w-full h-32 border-b border-amber-900/40 overflow-hidden">
+            <Image
+              src="/images/assets/chef-logo.jpg"
+              alt="Hawadeet Logo"
+              fill
+              className="object-cover"
+            />
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="p-3.5 space-y-1.5 text-xs font-black">
+            {/* 1. الرئيسية */}
+            <button
+              type="button"
+              onClick={() => onNavigate("settings")}
+              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
+            >
+              <Home className="w-4 h-4 text-amber-400" />
+              <span>الرئيسية</span>
+            </button>
+
+            {/* 2. الطلبات */}
+            <button
+              type="button"
+              onClick={() => onNavigate("orders")}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
+            >
+              <div className="flex items-center gap-3">
+                <ClipboardList className="w-4 h-4 text-amber-400" />
+                <span>الطلبات</span>
+              </div>
+              <span className="w-5 h-5 rounded-full bg-[#d32f2f] text-white text-[10px] font-black flex items-center justify-center">
+                12
+              </span>
+            </button>
+
+            {/* 3. قائمة الطعام (Active) */}
+            <button
+              type="button"
+              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl bg-[#d32f2f] text-white shadow-lg cursor-pointer text-right"
+            >
+              <UtensilsCrossed className="w-4 h-4 text-white" />
+              <span>قائمة الطعام</span>
+            </button>
+
+            {/* 4. العملاء */}
+            <button
+              type="button"
+              onClick={() => showToast("شاشة سجل العملاء قيد التطوير")}
+              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
+            >
+              <Users className="w-4 h-4 text-amber-400" />
+              <span>العملاء</span>
+            </button>
+
+            {/* 5. الإعدادات */}
+            <button
+              type="button"
+              onClick={() => onNavigate("settings")}
+              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
+            >
+              <Settings className="w-4 h-4 text-amber-400" />
+              <span>الإعدادات</span>
+            </button>
+
+            {/* 6. تسجيل الخروج */}
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl text-red-300 hover:bg-red-950/40 transition-all cursor-pointer text-right"
+            >
+              <LogOut className="w-4 h-4 text-red-400" />
+              <span>تسجيل الخروج</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* Decorative Egyptian Silhouette at Bottom */}
+        <div className="relative w-full h-36 border-t border-amber-900/40 opacity-80">
+          <Image
+            src="/images/assets/pharaoh-art.jpg"
+            alt="Egyptian Art"
+            fill
+            className="object-cover"
           />
-          <Search className="w-3.5 h-3.5 text-[#7c634c] shrink-0" />
         </div>
-      </div>
-
-      {/* أزرار تصفية الأقسام */}
-      <button
-        type="button"
-        onClick={() => setSelectedCategory("حلويات")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:brightness-95"
-        style={{ top: "18.8%", left: "25.2%", width: "7.0%", height: "5.8%" }}
-        title="حلويات"
-      />
-
-      <button
-        type="button"
-        onClick={() => setSelectedCategory("محاشي")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:brightness-95"
-        style={{ top: "18.8%", left: "32.8%", width: "6.5%", height: "5.8%" }}
-        title="محاشي"
-      />
-
-      <button
-        type="button"
-        onClick={() => setSelectedCategory("طواجن")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:brightness-95"
-        style={{ top: "18.8%", left: "39.8%", width: "6.5%", height: "5.8%" }}
-        title="طواجن"
-      />
-
-      <button
-        type="button"
-        onClick={() => setSelectedCategory("الكل")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:brightness-95"
-        style={{ top: "18.8%", left: "46.8%", width: "5.5%", height: "5.8%" }}
-        title="عرض جميع الأطباق"
-      />
-
-      {/* زر إضافة طبق جديد */}
-      <button
-        type="button"
-        onClick={handleOpenAddModal}
-        className="absolute z-20 cursor-pointer rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-        style={{ top: "18.8%", right: "26.2%", width: "14.5%", height: "5.8%" }}
-        title="إضافة طبق أو منتج جديد إلى المنيو"
-      />
-
-      {/* كروت الأطباق */}
-      <div
-        onClick={() => handleToggleAvailability("dish-1")}
-        className="absolute z-20 cursor-pointer rounded-full"
-        style={{ top: "64.8%", left: "14.6%", width: "3.5%", height: "2.8%" }}
-        title="تبديل توفر الطبق اليوم"
-      />
-
-      <button
-        type="button"
-        onClick={() => handleOpenEditModal(dishes[0] || INITIAL_DISHES[0])}
-        className="absolute z-20 cursor-pointer rounded-xl hover:bg-black/5"
-        style={{ top: "70.2%", left: "17.4%", width: "5.2%", height: "3.4%" }}
-        title="تعديل الطبق"
-      />
-
-      <button
-        type="button"
-        onClick={() => handleDeleteDish("dish-1")}
-        className="absolute z-20 cursor-pointer rounded-xl hover:bg-black/5"
-        style={{ top: "70.2%", left: "11.2%", width: "5.2%", height: "3.4%" }}
-        title="حذف الطبق"
-      />
-
-      <button
-        type="button"
-        onClick={() => showToast("سيتم فتح نافذة تصوير وربط فيديو ريلز للطبق! 🎬")}
-        className="absolute z-20 cursor-pointer rounded-xl hover:bg-black/5"
-        style={{ top: "70.2%", left: "3.2%", width: "7.0%", height: "3.4%" }}
-        title="ربط الطبق بفيديو ريلز جذاب"
-      />
-
-      <div
-        onClick={() => handleToggleAvailability("dish-2")}
-        className="absolute z-20 cursor-pointer rounded-full"
-        style={{ top: "64.8%", right: "24.5%", width: "3.5%", height: "2.8%" }}
-        title="تبديل توفر الطبق اليوم"
-      />
-
-      <button
-        type="button"
-        onClick={() => handleOpenEditModal(dishes[1] || INITIAL_DISHES[1])}
-        className="absolute z-20 cursor-pointer rounded-xl hover:bg-black/5"
-        style={{ top: "70.2%", right: "22.2%", width: "5.2%", height: "3.4%" }}
-        title="تعديل الطبق"
-      />
-
-      <button
-        type="button"
-        onClick={() => handleDeleteDish("dish-2")}
-        className="absolute z-20 cursor-pointer rounded-xl hover:bg-black/5"
-        style={{ top: "70.2%", right: "28.5%", width: "5.2%", height: "3.4%" }}
-        title="حذف الطبق"
-      />
+      </aside>
 
       {/* =========================================================================
-          نافذة إضافة / تعديل طبق
+          MODAL: إضافة / تعديل طبق (Add/Edit Dish Modal)
          ========================================================================= */}
       {isModalOpen && (
-        <>
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(false)}
-            className="absolute z-30 cursor-pointer rounded-full hover:scale-110 active:scale-90 transition-all"
-            style={{ top: "25.2%", left: "29.2%", width: "2.6%", height: "3.8%" }}
-            title="إغلاق النافذة"
-          />
-
-          <label
-            className="absolute z-30 cursor-pointer flex items-center justify-center gap-1 rounded-xl hover:bg-black/10"
-            style={{ top: "48.2%", left: "31.2%", width: "8.2%", height: "3.4%" }}
-            title="رفع وتغيير صورة الطبق"
-          >
-            <input type="file" accept="image/*" className="hidden" onChange={() => showToast("تم تحديث صورة الطبق بنجاح! 📸")} />
-          </label>
-
-          <div
-            className="absolute z-30 flex items-center"
-            style={{ top: "35.5%", left: "43.2%", width: "16.8%", height: "4.2%" }}
-          >
-            <input
-              type="text"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              placeholder="اسم الطبق"
-              className="w-full h-full bg-white/95 rounded-xl border border-[#ded4c5] hover:border-[#d32f2f] focus:border-[#d32f2f] px-2.5 text-xs font-bold text-[#3a2818] outline-none text-right"
-            />
-          </div>
-
-          <div
-            className="absolute z-30 flex items-center"
-            style={{ top: "41.5%", left: "43.2%", width: "16.8%", height: "4.2%" }}
-          >
-            <input
-              type="text"
-              value={formDescription}
-              onChange={(e) => setFormDescription(e.target.value)}
-              placeholder="وصف الطبق ومكوناته"
-              className="w-full h-full bg-white/95 rounded-xl border border-[#ded4c5] hover:border-[#d32f2f] focus:border-[#d32f2f] px-2.5 text-[11px] font-bold text-[#3a2818] outline-none text-right"
-            />
-          </div>
-
-          <div
-            className="absolute z-30 flex items-center"
-            style={{ top: "47.2%", left: "43.2%", width: "16.8%", height: "4.2%" }}
-          >
-            <div className="relative w-full h-full bg-white/95 rounded-xl border border-[#ded4c5] hover:border-[#d32f2f] focus-within:border-[#d32f2f] flex items-center px-2">
-              <span className="text-[10px] font-bold text-[#8b1e1e] shrink-0">ج.م</span>
-              <input
-                type="number"
-                value={formPrice}
-                onChange={(e) => setFormPrice(Number(e.target.value))}
-                className="w-full bg-transparent text-xs font-bold text-[#3a2818] outline-none text-center"
-              />
-            </div>
-          </div>
-
-          <div
-            className="absolute z-30 flex items-center"
-            style={{ top: "52.8%", left: "43.2%", width: "16.8%", height: "4.2%" }}
-          >
-            <div className="relative w-full h-full bg-white/95 rounded-xl border border-[#ded4c5] hover:border-[#d32f2f] flex items-center px-2">
-              <select
-                value={formCategory}
-                onChange={(e) => setFormCategory(e.target.value)}
-                className="w-full bg-transparent text-[11px] font-bold text-[#3a2818] outline-none text-right appearance-none cursor-pointer"
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-[#fefcf7] border-2 border-[#e3d0b1] rounded-3xl w-full max-w-lg p-6 shadow-2xl relative text-right max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#e8d7be]">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 transition-colors cursor-pointer"
               >
-                <option value="أطباق رئيسية">أطباق رئيسية 🍲</option>
-                <option value="طواجن">طواجن 🥘</option>
-                <option value="محاشي">محاشي 🥬</option>
-                <option value="حلويات">حلويات 🍯</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-[#7c634c] shrink-0" />
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black text-[#3a2818]">
+                  {editingDishId ? "تعديل بيانات الطبق" : "إضافة طبق جديد للمنيو"}
+                </h3>
+                <span className="p-1.5 bg-amber-100 text-[#8c2b18] rounded-xl">
+                  <UtensilsCrossed className="w-5 h-5" />
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div
-            className="absolute z-30 flex items-center"
-            style={{ top: "63.8%", left: "49.2%", width: "15.0%", height: "4.2%" }}
-          >
-            <div className="relative w-full h-full bg-white/95 rounded-xl border border-[#ded4c5] hover:border-[#d32f2f] flex items-center px-2">
-              <select
-                value={formServings}
-                onChange={(e) => setFormServings(e.target.value)}
-                className="w-full bg-transparent text-[11px] font-bold text-[#3a2818] outline-none text-right appearance-none cursor-pointer"
+            {/* Modal Form */}
+            <div className="my-4 space-y-4 text-xs font-bold text-[#3a2818]">
+              {/* Dish Name */}
+              <div>
+                <label className="block mb-1 font-black">اسم الطبق</label>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="مثال: محشي مشكل بيتي بالسمنة البلدي"
+                  className="w-full bg-[#fdfaf3] hover:bg-white focus:bg-white rounded-2xl border-2 border-[#eddcc4] focus:border-[#d32f2f] focus:outline-none p-2.5 text-right transition-all"
+                  autoFocus
+                />
+              </div>
+
+              {/* Dish Description */}
+              <div>
+                <label className="block mb-1 font-black">وصف الطبق والمكونات</label>
+                <textarea
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  placeholder="اكتب وصفاً جذاباً للطبق ومكوناته..."
+                  rows={2}
+                  className="w-full bg-[#fdfaf3] hover:bg-white focus:bg-white rounded-2xl border-2 border-[#eddcc4] focus:border-[#d32f2f] focus:outline-none p-2.5 text-right resize-none transition-all"
+                />
+              </div>
+
+              {/* Price & Category */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block mb-1 font-black">السعر الأساسي (ج.م)</label>
+                  <input
+                    type="number"
+                    value={formPrice}
+                    onChange={(e) => setFormPrice(Number(e.target.value))}
+                    className="w-full bg-[#fdfaf3] hover:bg-white focus:bg-white rounded-2xl border-2 border-[#eddcc4] focus:border-[#d32f2f] focus:outline-none p-2.5 text-center font-black transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1 font-black">القسم</label>
+                  <select
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                    className="w-full bg-[#fdfaf3] hover:bg-white focus:bg-white rounded-2xl border-2 border-[#eddcc4] focus:border-[#d32f2f] focus:outline-none p-2.5 text-right font-bold transition-all"
+                  >
+                    <option value="طواجن">طواجن</option>
+                    <option value="محاشي">محاشي</option>
+                    <option value="حلويات">حلويات</option>
+                    <option value="مشويات">مشويات</option>
+                    <option value="وجبات عائلية">وجبات عائلية</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Servings & Prep Time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block mb-1 font-black">عدد الأفراد</label>
+                  <select
+                    value={formServings}
+                    onChange={(e) => setFormServings(e.target.value)}
+                    className="w-full bg-[#fdfaf3] hover:bg-white focus:bg-white rounded-2xl border-2 border-[#eddcc4] focus:border-[#d32f2f] focus:outline-none p-2.5 text-right font-bold transition-all"
+                  >
+                    <option value="فرد واحد">فرد واحد</option>
+                    <option value="يكفي فردين">يكفي فردين</option>
+                    <option value="3-4 أفراد">3-4 أفراد</option>
+                    <option value="عائلي (5-6 أفراد)">عائلي (5-6 أفراد)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block mb-1 font-black">وقت التحضير (دقيقة)</label>
+                  <select
+                    value={formPrepTime}
+                    onChange={(e) => setFormPrepTime(Number(e.target.value))}
+                    className="w-full bg-[#fdfaf3] hover:bg-white focus:bg-white rounded-2xl border-2 border-[#eddcc4] focus:border-[#d32f2f] focus:outline-none p-2.5 text-right font-bold transition-all"
+                  >
+                    <option value={30}>30 دقيقة</option>
+                    <option value={45}>45 دقيقة</option>
+                    <option value={60}>60 دقيقة (ساعة)</option>
+                    <option value={90}>90 دقيقة (ساعة ونصف)</option>
+                    <option value={120}>120 دقيقة (ساعتان)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Modifiers & Add-ons */}
+              <div>
+                <label className="block mb-1.5 font-black">خيارات وإضافات الطبق</label>
+                <div className="flex flex-wrap gap-2">
+                  {["أرز أبيض", "أرز بسمتي", "أرز بالشعرية", "سلطة خضراء", "شطة إضافية", "ليمون ومخلل"].map((mod) => (
+                    <button
+                      key={mod}
+                      type="button"
+                      onClick={() => toggleModifier(mod)}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                        selectedModifiers.includes(mod)
+                          ? "bg-amber-600 text-white border-amber-700 shadow-xs"
+                          : "bg-white border-[#eddcc4] text-[#5c3a16] hover:bg-amber-50"
+                      }`}
+                    >
+                      {mod} {selectedModifiers.includes(mod) && "✓"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer Buttons */}
+            <div className="flex items-center gap-3 pt-3 border-t border-[#e8d7be]">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-[#5c3a16] text-xs font-bold transition-colors cursor-pointer"
               >
-                <option value="3-4 أفراد">👨‍👩‍👧‍👦 3-4 أفراد</option>
-                <option value="يكفي فردين">👫 يكفي فردين</option>
-                <option value="فرد واحد">👤 فرد واحد</option>
-                <option value="عائلي 5-7 أفراد">🏰 عائلي 5-7 أفراد</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-[#7c634c] shrink-0" />
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleSaveDish}
+                className="flex-2 py-2.5 rounded-2xl bg-[#d32f2f] hover:bg-[#b71c1c] active:scale-95 text-white text-xs font-black shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>{saving ? "جاري الحفظ..." : "حفظ التغييرات في المنيو"}</span>
+              </button>
             </div>
           </div>
-
-          <div
-            className="absolute z-30 flex items-center justify-center bg-white/90 rounded-md px-1"
-            style={{ top: "64.2%", left: "34.5%", width: "8.5%", height: "3.2%" }}
-          >
-            <span className="text-xs font-black text-[#8b1e1e]">{formPrepTime} دقيقة</span>
-          </div>
-
-          <div
-            className="absolute z-30 flex items-center"
-            style={{ top: "68.2%", left: "30.0%", width: "17.0%", height: "3.0%" }}
-          >
-            <input
-              type="range"
-              min={20}
-              max={180}
-              step={5}
-              value={formPrepTime}
-              onChange={(e) => setFormPrepTime(Number(e.target.value))}
-              className="w-full h-1.5 bg-[#ebdcc7] rounded-lg appearance-none cursor-pointer accent-[#d32f2f]"
-            />
-          </div>
-
-          <div
-            onClick={() => setSelectedVariant("وسط")}
-            className={`absolute z-30 cursor-pointer rounded-2xl transition-all ${
-              selectedVariant === "وسط" ? "ring-2 ring-[#d32f2f]" : "hover:bg-black/5"
-            }`}
-            style={{ top: "75.2%", left: "37.5%", width: "8.8%", height: "11.2%" }}
-            title="الحجم الوسط: 180 ج.م"
-          />
-
-          <div
-            onClick={() => setSelectedVariant("عائلي")}
-            className={`absolute z-30 cursor-pointer rounded-2xl transition-all ${
-              selectedVariant === "عائلي" ? "ring-2 ring-[#d32f2f]" : "hover:bg-black/5"
-            }`}
-            style={{ top: "75.2%", left: "29.5%", width: "7.5%", height: "11.2%" }}
-            title="الحجم العائلي: 250 ج.م"
-          />
-
-          <div
-            onClick={() => toggleModifier("أبيض")}
-            className="absolute z-30 cursor-pointer"
-            style={{ top: "78.2%", left: "63.2%", width: "3.2%", height: "2.8%" }}
-            title="أرز أبيض"
-          />
-
-          <div
-            onClick={() => toggleModifier("بسمتي")}
-            className="absolute z-30 cursor-pointer"
-            style={{ top: "81.0%", left: "63.2%", width: "3.2%", height: "2.8%" }}
-            title="أرز بسمتي"
-          />
-
-          <div
-            onClick={() => toggleModifier("شطة")}
-            className="absolute z-30 cursor-pointer"
-            style={{ top: "83.6%", left: "63.2%", width: "3.2%", height: "2.8%" }}
-            title="شطة إضافية"
-          />
-
-          <div
-            onClick={() => toggleModifier("طحينة")}
-            className="absolute z-30 cursor-pointer"
-            style={{ top: "81.0%", left: "54.8%", width: "3.2%", height: "2.8%" }}
-            title="سلطة طحينة"
-          />
-
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleSaveDish}
-            className="absolute z-30 rounded-2xl flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all disabled:opacity-50"
-            style={{ top: "89.2%", left: "41.8%", width: "21.5%", height: "4.8%" }}
-            title="حفظ الطبق"
-          />
-
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(false)}
-            className="absolute z-30 rounded-2xl flex items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all hover:bg-black/5"
-            style={{ top: "89.2%", left: "32.2%", width: "8.8%", height: "4.8%" }}
-            title="إلغاء وإغلاق"
-          />
-        </>
+        </div>
       )}
-
-      {/* القائمة الجانبية */}
-      <button
-        type="button"
-        onClick={() => onNavigate("settings")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
-        style={{ top: "30.8%", right: "1.2%", width: "15.0%", height: "5.5%" }}
-        title="الرئيسية (إعدادات المتجر والتشغيل)"
-      />
-
-      <button
-        type="button"
-        onClick={() => onNavigate("orders")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
-        style={{ top: "37.5%", right: "1.2%", width: "15.0%", height: "5.0%" }}
-        title="إدارة الطلبات"
-      />
-
-      <button
-        type="button"
-        onClick={() => onNavigate("menu")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
-        style={{ top: "43.2%", right: "1.2%", width: "15.0%", height: "5.0%" }}
-        title="قائمة الطعام والمنتجات (أنت هنا)"
-      />
-
-      <button
-        type="button"
-        onClick={() => showToast("صفحة العملاء قادمة! 👥")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
-        style={{ top: "49.0%", right: "1.2%", width: "15.0%", height: "5.0%" }}
-        title="العملاء"
-      />
-
-      <button
-        type="button"
-        onClick={() => showToast("التقارير والمحفظة المالية قريباً! 📊")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
-        style={{ top: "54.8%", right: "1.2%", width: "15.0%", height: "5.0%" }}
-        title="التقارير والإحصائيات"
-      />
-
-      <button
-        type="button"
-        onClick={() => onNavigate("settings")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
-        style={{ top: "60.5%", right: "1.2%", width: "15.0%", height: "5.0%" }}
-        title="إعدادات المتجر والتشغيل"
-      />
-
-      <button
-        type="button"
-        onClick={() => showToast("فريق دعم حواديت معك دائماً 🎧")}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/10"
-        style={{ top: "66.2%", right: "1.2%", width: "15.0%", height: "5.0%" }}
-        title="الدعم والمساعدة"
-      />
-
-      <button
-        type="button"
-        onClick={onLogout}
-        className="absolute z-20 cursor-pointer rounded-2xl hover:bg-white/15 active:scale-95 transition-all"
-        style={{ top: "71.9%", right: "1.2%", width: "15.0%", height: "5.0%" }}
-        title="تسجيل الخروج"
-      />
     </div>
   );
 }
