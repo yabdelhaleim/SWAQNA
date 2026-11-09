@@ -14,6 +14,9 @@ export interface ApiResponse<T = any> {
   data?: any;
   order?: any;
   orders?: any[];
+  reel?: any;
+  reels?: any[];
+  cursor?: any;
   stats?: any;
   product?: any;
   products?: any[];
@@ -400,6 +403,73 @@ export const merchantApi = {
   async createTestOrder(token: string): Promise<ApiResponse> {
     const res = await fetch(`${API_BASE_URL}/orders/create-test-order`, {
       method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * =========================================================================
+   * مسارات الفيديوهات والريلز (Reels API)
+   * =========================================================================
+   */
+
+  /**
+   * جلب فيديوهات المتجر مع دعم الـ Cursor-based Pagination
+   */
+  async getReels(token: string, cursor?: string, productId?: string): Promise<ApiResponse> {
+    const params = new URLSearchParams();
+    if (cursor) params.append("cursor", cursor);
+    if (productId) params.append("product_id", productId);
+
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const res = await fetch(`${API_BASE_URL}/reels${query}`, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * رفع ونشر فيديو ريلز جديد وربطه بالطبق
+   */
+  async uploadReel(token: string, formData: FormData): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/reels`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    return res.json();
+  },
+
+  /**
+   * تفعيل أو إيقاف ظهور الريلز
+   */
+  async toggleReelStatus(token: string, id: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/reels/${id}/toggle-status`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * حذف فيديو ريلز
+   */
+  async deleteReel(token: string, id: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/reels/${id}`, {
+      method: "DELETE",
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,

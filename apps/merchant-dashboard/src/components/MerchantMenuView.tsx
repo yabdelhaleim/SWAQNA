@@ -28,6 +28,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { merchantApi } from "@/lib/api";
+import ReelModal from "@/components/ReelModal";
 
 interface DishItem {
   id: string;
@@ -37,6 +38,10 @@ interface DishItem {
   category_id?: string;
   category_name?: string;
   image_url?: string;
+  reel_url?: string;
+  reel_title?: string;
+  reel_likes?: number;
+  reel_views?: number;
   is_available: boolean;
   prep_time_minutes: number;
   servings_count: string;
@@ -65,6 +70,10 @@ const INITIAL_DISHES: DishItem[] = [
     base_price: 180,
     category_name: "محاشي",
     image_url: "/images/assets/dish-tagine.jpg",
+    reel_url: "https://assets.mixkit.co/videos/preview/mixkit-top-shot-of-a-dish-with-curry-and-rice-42407-large.mp4",
+    reel_title: "سر خلطة وطشة المحشي البلدي بالسمنة",
+    reel_likes: 2450,
+    reel_views: 8900,
     is_available: true,
     prep_time_minutes: 90,
     servings_count: "3-4 أفراد",
@@ -107,6 +116,11 @@ export default function MerchantMenuView({
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingDishId, setEditingDishId] = useState<string | null>(null);
+
+  // Reels Modal State
+  const [selectedDishForReel, setSelectedDishForReel] = useState<DishItem | null>(null);
+  const [isReelModalOpen, setIsReelModalOpen] = useState<boolean>(false);
+  const [reelModalMode, setReelModalMode] = useState<"upload" | "watch">("upload");
 
   // Form Fields
   const [formName, setFormName] = useState<string>("");
@@ -197,6 +211,38 @@ export default function MerchantMenuView({
     } catch (e) {
       showToast("تم تحديث حالة التوفر.");
     }
+  };
+
+  // فتح نافذة ربط أو رفع ريلز جديد للطبق
+  const handleOpenReelUpload = (dish: DishItem) => {
+    setSelectedDishForReel(dish);
+    setReelModalMode("upload");
+    setIsReelModalOpen(true);
+  };
+
+  // فتح نافذة مشاهدة ومعاينة الريلز المباشر للطبق
+  const handleOpenReelWatch = (dish: DishItem) => {
+    setSelectedDishForReel(dish);
+    setReelModalMode("watch");
+    setIsReelModalOpen(true);
+  };
+
+  // تحديث بيانات الطبق فور حفظ الريلز
+  const handleReelSaved = (dishId: string, reelData: any) => {
+    setDishes((prev) =>
+      prev.map((d) =>
+        d.id === dishId
+          ? {
+              ...d,
+              reel_url: reelData.video_url,
+              reel_title: reelData.title,
+              reel_likes: reelData.likes_count || 120,
+              reel_views: reelData.views_count || 450,
+            }
+          : d
+      )
+    );
+    showToast("تم نشر وربط فيديو الريلز بالطبق بنجاح! 🎬✨");
   };
 
   // تبديل اختيار إضافة معينة
@@ -450,6 +496,22 @@ export default function MerchantMenuView({
                       <div className="absolute top-2.5 right-2.5 bg-[#8c2b18] text-white text-xs font-black px-3 py-1 rounded-xl shadow-md border border-amber-300/30">
                         {dish.base_price} ج.م
                       </div>
+
+                      {/* Reel Available Watch Badge */}
+                      {dish.reel_url && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenReelWatch(dish);
+                          }}
+                          className="absolute top-2.5 left-2.5 bg-gradient-to-r from-red-600 to-amber-600 text-white text-[10px] font-black px-2.5 py-1 rounded-xl shadow-lg border border-white/40 flex items-center gap-1 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Film className="w-3 h-3 fill-white" />
+                          <span>شاهد الريلز 🎬</span>
+                        </button>
+                      )}
+
                       {/* Category Badge */}
                       {dish.category_name && (
                         <div className="absolute bottom-2.5 right-2.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-0.5 rounded-lg">
@@ -529,11 +591,15 @@ export default function MerchantMenuView({
 
                       <button
                         type="button"
-                        onClick={() => showToast("سيتم فتح نافذة تصوير وربط فيديو ريلز للطبق! 🎬")}
-                        className="flex-1 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 text-[#8c2b18] text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        onClick={() => handleOpenReelUpload(dish)}
+                        className={`flex-1 py-1.5 rounded-xl border text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          dish.reel_url
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 hover:bg-emerald-500/20"
+                            : "bg-amber-500/10 border-amber-500/30 text-[#8c2b18] hover:bg-amber-500/20"
+                        }`}
                       >
                         <Film className="w-3.5 h-3.5" />
-                        <span>ربط ريلز</span>
+                        <span>{dish.reel_url ? "تعديل الريلز" : "ربط ريلز"}</span>
                       </button>
                     </div>
                   </div>
@@ -800,6 +866,16 @@ export default function MerchantMenuView({
           </div>
         </div>
       )}
+
+      {/* Reel Modal (Upload & Watch modes) */}
+      <ReelModal
+        isOpen={isReelModalOpen}
+        mode={reelModalMode}
+        dish={selectedDishForReel}
+        token={token}
+        onClose={() => setIsReelModalOpen(false)}
+        onReelSaved={handleReelSaved}
+      />
     </div>
   );
 }
