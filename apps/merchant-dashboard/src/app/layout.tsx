@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "حواديت - لوحة تحكم التاجر",
-  description: "لوحة تحكم أصحاب المطاعم والمحلات والمطابخ المنزلية في منصة حواديت",
+  title: "سـوقـنا | بوابة الشركاء والتجار",
+  description: "لوحة تحكم التجار والشركاء والمطاعم في منصة سوقنا - لقطة في كل حاجة ..",
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className="antialiased min-h-screen bg-[#fffbf2]">
+      <body className="antialiased min-h-screen bg-souqna-base text-souqna-text-primary">
         {children}
       </body>
     </html>

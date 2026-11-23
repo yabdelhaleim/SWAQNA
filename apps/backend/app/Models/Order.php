@@ -29,12 +29,15 @@ class Order extends Model
         'subtotal_amount',
         'delivery_fee',
         'discount_amount',
+        'coupon_code',
+        'coupon_id',
         'total_amount',
         'payment_method',
         'paid_from_wallet_amount',
         'remaining_cash_amount',
         'is_paid',
         'status',
+        'delivery_pin',
         'prep_time_minutes',
         'order_notes',
         'rejection_reason',
@@ -82,7 +85,17 @@ class Order extends Model
 
     public function address(): BelongsTo
     {
-        return $this->belongsTo(UserAddress::class, 'delivery_address_id');
+        return $this->belongsTo(CustomerAddress::class, 'delivery_address_id');
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class, 'coupon_id');
+    }
+
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
     }
 
     public function items(): HasMany
@@ -93,10 +106,5 @@ class Order extends Model
     public function statusHistory(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class);
-    }
-
-    public function review(): HasOne
-    {
-        return $this->hasOne(Review::class);
     }
 }

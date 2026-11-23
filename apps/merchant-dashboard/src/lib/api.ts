@@ -23,7 +23,11 @@ export interface ApiResponse<T = any> {
   categories?: any[];
   available_modifier_groups?: any[];
   business_hours?: any[];
+  wallet?: any;
+  transactions?: any[];
+  payout?: any;
   url?: string;
+  image_url?: string;
   debug_code?: string;
   expires_in_seconds?: number;
   resend_in_seconds?: number;
@@ -474,6 +478,58 @@ export const merchantApi = {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
       },
+    });
+    return res.json();
+  },
+
+  /**
+   * جلب بيانات المحفظة والرصيد المتاح والأرباح
+   */
+  async getWallet(token: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/wallet`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * جلب سجل المعاملات المالية وكشف الحساب
+   */
+  async getWalletTransactions(token: string): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/wallet/transactions`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  /**
+   * تقديم طلب سحب أرباح فوري (إنستاباي / فودافون كاش / بنكي)
+   */
+  async requestPayout(
+    token: string,
+    data: {
+      amount: number;
+      payout_method: "INSTAPAY" | "VODAFONE_CASH" | "BANK_TRANSFER";
+      account_details: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse> {
+    const res = await fetch(`${API_BASE_URL}/wallet/withdraw`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
     });
     return res.json();
   },

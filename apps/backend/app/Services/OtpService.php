@@ -79,12 +79,12 @@ class OtpService
 
         // 2. هل الكود موجود؟
         $storedCode = Cache::get($codeKey);
-        if (!$storedCode) {
+        if (!$storedCode && !(app()->isLocal() && $code === '1234')) {
             throw new Exception("انتهت صلاحية كود التحقق أو أنه غير موجود. اطلب كوداً جديداً.", 422);
         }
 
-        // 3. مطابقة الكود
-        if ($storedCode !== $code) {
+        // 3. مطابقة الكود (في بيئة التطوير نقبل 1234 للتجربة السريعة)
+        if ($storedCode !== $code && !(app()->isLocal() && $code === '1234')) {
             // زيادة عدد المحاولات الخاطئة
             $attempts = (int) Cache::get($attemptsKey, 0) + 1;
             Cache::put($attemptsKey, $attempts, $this->ttlSeconds);

@@ -4,26 +4,163 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================
+   Souqna Merchant Portal — Global Styles
+   Design: Midnight Emerald & Gold (SaaS-Grade)
+   ===================================================== */
+
 :root {
-  --foreground-rgb: 40, 25, 15;
-  --background-start-rgb: 255, 251, 242;
-  --background-end-rgb: 255, 255, 255;
+  --souqna-base: #07100F;
+  --souqna-surface: #0D1A18;
+  --souqna-card: #122320;
+  --souqna-border: #1E3532;
+  --souqna-gold: #F59E0B;
+  --souqna-emerald: #10B981;
+  --souqna-text: #F0F5F4;
+  --souqna-muted: #8FA8A5;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  direction: rtl;
+  scroll-behavior: smooth;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  font-family: 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  margin: 0;
-  padding: 0;
-  direction: rtl;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  background-color: var(--souqna-base);
+  color: var(--souqna-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
 
+/* ===== Scrollbars ===== */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--souqna-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--souqna-border);
+  border-radius: 100px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--souqna-gold);
+}
+
+/* ===== Input base reset ===== */
+input, textarea, select {
+  font-family: 'Cairo', sans-serif;
+  outline: none;
+}
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* ===== Glass Card Component ===== */
+@layer components {
+  .card-glass {
+    @apply bg-souqna-card border border-souqna-border rounded-2xl;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .btn-gold {
+    @apply bg-souqna-gold hover:bg-souqna-gold-dark text-black font-bold rounded-xl transition-all duration-200 active:scale-[0.98];
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+  }
+
+  .btn-ghost {
+    @apply border border-souqna-border hover:border-souqna-gold/40 text-souqna-text-secondary hover:text-souqna-gold bg-transparent rounded-xl transition-all duration-200;
+  }
+
+  .input-dark {
+    @apply bg-souqna-surface border border-souqna-border text-souqna-text-primary placeholder-souqna-text-muted rounded-xl px-4 py-3 w-full transition-all duration-200;
+    @apply focus:border-souqna-gold/60 focus:ring-2 focus:ring-souqna-gold/10;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-souqna-text-secondary transition-all duration-200 cursor-pointer;
+    @apply hover:bg-souqna-surface hover:text-souqna-text-primary;
+  }
+
+  .nav-item-active {
+    @apply bg-souqna-gold/10 text-souqna-gold border border-souqna-gold/20;
+    box-shadow: 0 2px 12px rgba(245, 158, 11, 0.15);
+  }
+
+  .badge-live {
+    @apply inline-flex items-center justify-center bg-souqna-red text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1;
+  }
+
+  .status-open {
+    @apply bg-souqna-emerald/15 text-souqna-emerald border border-souqna-emerald/30;
+  }
+
+  .status-closed {
+    @apply bg-souqna-red/15 text-souqna-red border border-souqna-red/30;
+  }
+}
+
+/* ===== Page transition ===== */
+.page-enter {
+  animation: fadeUp 0.3s ease-out;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Mobile sidebar overlay ===== */
+.sidebar-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ===== Kitchen POS Receipt Print Styles (80mm / 58mm Thermal Printer) ===== */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #kitchen-receipt-print-area, #kitchen-receipt-print-area * {
+    visibility: visible;
+  }
+  #kitchen-receipt-print-area {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 3mm 4mm !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+    display: block !important;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}
+

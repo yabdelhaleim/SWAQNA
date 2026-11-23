@@ -66,7 +66,7 @@ class MenuController extends Controller
                 'name' => $p->name,
                 'description' => $p->description,
                 'base_price' => (float) $p->base_price,
-                'image_url' => $p->image_url,
+                'image_url' => $p->image_url ? (str_starts_with($p->image_url, 'http') || str_starts_with($p->image_url, 'data:') ? $p->image_url : url($p->image_url)) : null,
                 'is_available' => (bool) $p->is_available,
                 'prep_time_minutes' => (int) $p->prep_time_minutes,
                 'servings_count' => $p->servings_count,
@@ -110,11 +110,28 @@ class MenuController extends Controller
         $merchant = Merchant::where('owner_id', $user->id)->firstOrFail();
         $validated = $request->validated();
 
-        $product = DB::transaction(function () use ($merchant, $validated) {
+        $product = DB::transaction(function () use ($merchant, $validated, $request) {
+            $categoryId = $validated['category_id'] ?? null;
+            $catName = $request->input('category_name') ?? $request->input('category');
+            if (!$categoryId && !empty($catName)) {
+                $category = Category::where(function ($q) use ($merchant) {
+                    $q->whereNull('merchant_id')->orWhere('merchant_id', $merchant->id);
+                })->where('name', $catName)->first();
+
+                if (!$category) {
+                    $category = Category::create([
+                        'merchant_id' => $merchant->id,
+                        'name' => $catName,
+                        'is_active' => true,
+                    ]);
+                }
+                $categoryId = $category->id;
+            }
+
             // 1. إنشاء الطبق الأساسي
             $product = Product::create([
                 'merchant_id' => $merchant->id,
-                'category_id' => $validated['category_id'] ?? null,
+                'category_id' => $categoryId,
                 'name' => $validated['name'],
                 'description' => $validated['description'] ?? null,
                 'base_price' => $validated['base_price'],
@@ -167,9 +184,26 @@ class MenuController extends Controller
         $product = Product::where('merchant_id', $merchant->id)->where('id', $id)->firstOrFail();
         $validated = $request->validated();
 
-        DB::transaction(function () use ($product, $validated) {
+        DB::transaction(function () use ($product, $merchant, $validated, $request) {
+            $categoryId = $validated['category_id'] ?? null;
+            $catName = $request->input('category_name') ?? $request->input('category');
+            if (!$categoryId && !empty($catName)) {
+                $category = Category::where(function ($q) use ($merchant) {
+                    $q->whereNull('merchant_id')->orWhere('merchant_id', $merchant->id);
+                })->where('name', $catName)->first();
+
+                if (!$category) {
+                    $category = Category::create([
+                        'merchant_id' => $merchant->id,
+                        'name' => $catName,
+                        'is_active' => true,
+                    ]);
+                }
+                $categoryId = $category->id;
+            }
+
             $product->update([
-                'category_id' => $validated['category_id'] ?? $product->category_id,
+                'category_id' => $categoryId ?? $product->category_id,
                 'name' => $validated['name'],
                 'description' => $validated['description'] ?? $product->description,
                 'base_price' => $validated['base_price'],
@@ -256,12 +290,15 @@ class MenuController extends Controller
         $extension = $file->getClientOriginalExtension() ?: 'jpg';
         $filename = 'dish_' . Str::random(12) . '.' . $extension;
 
-        $path = $file->storeAs('public/dishes', $filename);
-        $publicUrl = Storage::url($path);
+        // تخزين في قرص public (storage/app/public/dishes) ليكون متاحاً عبر symlink
+        $path = $file->storeAs('dishes', $filename, 'public');
+        $publicUrl = Storage::disk('public')->url($path);
+        $absoluteUrl = url($publicUrl);
 
         return response()->json([
             'success' => true,
-            'url' => $publicUrl,
+            'url' => $absoluteUrl,
+            'image_url' => $absoluteUrl,
         ]);
     }
 }

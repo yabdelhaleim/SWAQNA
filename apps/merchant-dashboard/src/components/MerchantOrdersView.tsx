@@ -1,37 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  X,
-  Plus,
-  Check,
-  Phone,
-  MapPin,
-  UtensilsCrossed,
-  ChefHat,
-  Hourglass,
-  PackageCheck,
-  Coins,
-  ChevronDown,
-  Bell,
-  Home,
-  ClipboardList,
-  Users,
-  Settings,
-  LogOut,
-  Store,
-  Wallet,
-  MessageSquare,
-  BarChart3,
-  LayoutGrid,
-  XCircle,
-  Film,
+  Clock, CheckCircle2, AlertCircle, X, Plus, Check, Phone, MapPin,
+  UtensilsCrossed, ChefHat, Hourglass, PackageCheck, Coins, ChevronDown,
+  Bell, BellOff, Store, Wallet, MessageSquare, LayoutGrid, Columns3,
+  XCircle, Loader2, Printer, ExternalLink, Maximize2, Minimize2,
+  Volume2, VolumeX, Eye, ArrowRight,
 } from "lucide-react";
 import { merchantApi } from "@/lib/api";
+import { soundService } from "@/lib/audioNotification";
+import KitchenReceipt, { ReceiptOrder } from "@/components/KitchenReceipt";
+import { getEcho } from "@/lib/echo";
 
 interface OrderItem {
   id?: string;
@@ -40,6 +20,8 @@ interface OrderItem {
   quantity: number;
   total_price: number;
   item_notes?: string;
+  variant_name?: string;
+  modifiers?: Array<{ name: string; price: number }>;
 }
 
 interface Order {
@@ -70,7 +52,7 @@ interface MerchantOrdersViewProps {
 
 export default function MerchantOrdersView({
   token,
-  storeName = "مطبخ أم أحمد للأكل البيتي",
+  storeName = "متجر سوقنا",
   user,
   onNavigate,
   onLogout,
@@ -81,13 +63,17 @@ export default function MerchantOrdersView({
   const [activeFilter, setActiveFilter] = useState<
     "ALL" | "PENDING" | "PREPARING" | "READY" | "CANCELLED"
   >("ALL");
+  const [viewMode, setViewMode] = useState<"grid" | "kanban">("grid");
+  const [isKdsFullscreen, setIsKdsFullscreen] = useState(false);
+  const [soundActive, setSoundActive] = useState(true);
+  const [autoPrintEnabled, setAutoPrintEnabled] = useState(false);
+
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [toastMessage, setToastMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
-  // Stats State
   const [stats, setStats] = useState({
     pending: 3,
     preparing: 2,
@@ -95,59 +81,54 @@ export default function MerchantOrdersView({
     today_sales: 1450,
   });
 
-  // Live Orders List
   const [orders, setOrders] = useState<Order[]>([
     {
       id: "ord-1",
       order_code: "ORD-8291",
-      customer_name: "إبراهيم",
+      customer_name: "إبراهيم الدسوقي",
       customer_phone: "01012345678",
-      delivery_address: "المعادي - شارع 9",
+      delivery_address: "المعادي - شارع 9 - عمارة 14",
       status: "PENDING",
       payment_method: "CASH_ON_DELIVERY",
       total_amount: 260,
       prep_time_minutes: 45,
-      order_notes: "الأكل بدون شطة",
-      image_url: "/images/assets/dish-tagine.jpg",
+      order_notes: "الأكل بدون شطة، زيادة ليمون ومخلل بلدي",
+      created_at: new Date().toISOString(),
       items: [
-        {
-          product_name_at_purchase: "طاجن بامية باللحمة (وسط)",
-          unit_price: 110,
-          quantity: 2,
-          total_price: 220,
-        },
-        {
-          product_name_at_purchase: "ملوخية بيتي بالسمنة البلدي",
-          unit_price: 40,
-          quantity: 1,
-          total_price: 40,
-        },
+        { product_name_at_purchase: "طاجن بامية باللحمة الضاني (وسط)", unit_price: 110, quantity: 2, total_price: 220, item_notes: "مسبك زيادة" },
+        { product_name_at_purchase: "ملوخية بيتي بالسمنة البلدي", unit_price: 40, quantity: 1, total_price: 40, item_notes: "طشة إضافية" },
       ],
     },
     {
       id: "ord-2",
       order_code: "ORD-7104",
-      customer_name: "محمود",
+      customer_name: "محمود الشناوي",
       customer_phone: "01198765432",
-      delivery_address: "التجمع الخامس",
+      delivery_address: "التجمع الخامس - الحي الثاني",
       status: "PREPARING",
       payment_method: "WALLET",
       total_amount: 110,
       prep_time_minutes: 30,
-      image_url: "/images/assets/dish-koshary.jpg",
+      created_at: new Date(Date.now() - 15 * 60000).toISOString(),
       items: [
-        {
-          product_name_at_purchase: "كشري مصري مخصوص",
-          unit_price: 60,
-          quantity: 1,
-          total_price: 60,
-        },
-        {
-          product_name_at_purchase: "سلطة خضراء بلدي",
-          unit_price: 25,
-          quantity: 2,
-          total_price: 50,
-        },
+        { product_name_at_purchase: "كشري مصري مخصوص", unit_price: 60, quantity: 1, total_price: 60, item_notes: "صلصة إضافية" },
+        { product_name_at_purchase: "سلطة خضراء بلدي", unit_price: 25, quantity: 2, total_price: 50 },
+      ],
+    },
+    {
+      id: "ord-3",
+      order_code: "ORD-6520",
+      customer_name: "سارة فاروق",
+      customer_phone: "01287654321",
+      delivery_address: "مدينة نصر - عباس العقاد",
+      status: "READY",
+      payment_method: "CASH_ON_DELIVERY",
+      total_amount: 320,
+      prep_time_minutes: 40,
+      created_at: new Date(Date.now() - 40 * 60000).toISOString(),
+      items: [
+        { product_name_at_purchase: "محشي مشكل فلاحي عائلي", unit_price: 250, quantity: 1, total_price: 250 },
+        { product_name_at_purchase: "شوربة لسان عصفور", unit_price: 35, quantity: 2, total_price: 70 },
       ],
     },
   ]);
@@ -164,47 +145,165 @@ export default function MerchantOrdersView({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null);
 
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [orderForReceipt, setOrderForReceipt] = useState<Order | null>(null);
+
   const [loadingAction, setLoadingAction] = useState(false);
 
+  // Audio & Tab flash refs
+  const prevPendingCountRef = useRef<number>(3);
+  const originalTitleRef = useRef<string>("");
+
+  // Load sound & auto-print settings from localStorage on mount
+  useEffect(() => {
+    setSoundActive(soundService.isEnabled());
+    if (typeof window !== "undefined") {
+      const savedAutoPrint = localStorage.getItem("souqna_auto_print");
+      if (savedAutoPrint !== null) {
+        setAutoPrintEnabled(savedAutoPrint === "true");
+      }
+      originalTitleRef.current = document.title;
+    }
+  }, []);
+
+  // Toggle Sound Setting
+  const handleToggleSound = () => {
+    const next = soundService.toggle();
+    setSoundActive(next);
+    showToast(next ? "تم تفعيل جرس التنبيه 🔔" : "تم كتم الصوت 🔕");
+  };
+
+  // Toggle Auto-Print Setting
+  const handleToggleAutoPrint = () => {
+    const next = !autoPrintEnabled;
+    setAutoPrintEnabled(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("souqna_auto_print", String(next));
+    }
+    showToast(next ? "تم تفعيل الطباعة التلقائية عند القبول 🖨️" : "تم إيقاف الطباعة التلقائية");
+  };
+
+  // Restore page title on window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (originalTitleRef.current && typeof document !== "undefined") {
+        document.title = originalTitleRef.current;
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
   // =========================================================================
-  // Load stats and orders from server on mount
+  // Live Realtime Polling Engine (Every 8 Seconds)
+  // =========================================================================
+  const fetchLatestOrders = useCallback(async () => {
+    if (!token) return;
+    try {
+      const [statsRes, ordersRes] = await Promise.all([
+        merchantApi.getOrderStats(token).catch(() => null),
+        merchantApi.getOrders(token).catch(() => null),
+      ]);
+
+      if (statsRes?.success && statsRes.stats) {
+        const newPending = statsRes.stats.pending ?? 0;
+        // Check if new pending order arrived
+        if (newPending > prevPendingCountRef.current) {
+          soundService.playOrderBell();
+          if (typeof document !== "undefined") {
+            document.title = `(${newPending}) 🛎️ طلب جديد وصل! - سوقنا`;
+          }
+          showToast(`🔔 تنبيه: لديك ${newPending} طلب جديد بانتظار الموافقة!`);
+        }
+        prevPendingCountRef.current = newPending;
+
+        setStats({
+          pending: newPending,
+          preparing: statsRes.stats.preparing ?? 0,
+          ready: statsRes.stats.ready ?? 0,
+          today_sales: statsRes.stats.today_sales ?? 0,
+        });
+      }
+
+      if (ordersRes?.success && ordersRes.data?.data && ordersRes.data.data.length > 0) {
+        setOrders(ordersRes.data.data);
+      }
+    } catch {
+      // Keep existing local state on network error
+    }
+  }, [token]);
+
+  // =========================================================================
+  // Real-Time WebSocket Engine (Laravel Reverb) + Smart Fallback Heartbeat
   // =========================================================================
   useEffect(() => {
-    if (!token) return;
+    fetchLatestOrders();
 
-    // Load Stats
-    merchantApi
-      .getOrderStats(token)
-      .then((res) => {
-        if (res.success && res.stats) {
-          setStats({
-            pending: res.stats.pending ?? 3,
-            preparing: res.stats.preparing ?? 2,
-            ready: res.stats.ready ?? 4,
-            today_sales: res.stats.today_sales ?? 1450,
-          });
-        }
-      })
-      .catch(() => {});
+    const merchantId = user?.id || user?.merchant?.id;
+    if (!token || !merchantId) return;
 
-    // Load Orders
-    merchantApi
-      .getOrders(token)
-      .then((res) => {
-        if (res.success && res.data?.data && res.data.data.length > 0) {
-          // Add default fallback dish images if missing
-          const enriched = res.data.data.map((o: Order, idx: number) => ({
-            ...o,
-            image_url:
-              idx % 2 === 0
-                ? "/images/assets/dish-tagine.jpg"
-                : "/images/assets/dish-koshary.jpg",
-          }));
-          setOrders(enriched);
+    let echo: any = null;
+    try {
+      echo = getEcho(token);
+      if (echo) {
+        const channelName = `merchant.${merchantId}`;
+        const channel = echo.private(channelName);
+
+        // 1. استقبال طلب جديد فورا (0ms) مع نغمة الجرس وتحديث الشاشة
+        channel.listen('.OrderPlaced', (event: any) => {
+          soundService.playOrderBell();
+          if (typeof document !== "undefined") {
+            document.title = `(1) 🛎️ طلب جديد وصل! - سوقنا`;
+          }
+          showToast(`🔔 طلب جديد وصل! #${event.order?.order_code || ''} بقيمة ${event.order?.total_amount || 0} ج.م`);
+
+          if (event.order) {
+            setOrders((prev) => {
+              const exists = prev.some((o) => o.id === event.order.id);
+              if (exists) return prev;
+              return [event.order, ...prev];
+            });
+            setStats((prev) => ({
+              ...prev,
+              pending: prev.pending + 1,
+              active_total: (prev.active_total || 0) + 1,
+            }));
+          }
+        });
+
+        // 2. تحديث حالة الطلب لحظياً (قبول، تحضير، جهوزية)
+        channel.listen('.OrderStatusUpdated', (event: any) => {
+          setOrders((prev) =>
+            prev.map((o) => (o.id === event.order_id ? { ...o, status: event.status } : o))
+          );
+          fetchLatestOrders();
+        });
+
+        // 3. إلغاء الطلب من طرف العميل
+        channel.listen('.OrderCancelled', (event: any) => {
+          showToast(`⚠️ تم إلغاء الطلب #${event.order_code || ''}`, "error");
+          setOrders((prev) =>
+            prev.map((o) => (o.id === event.order_id ? { ...o, status: "CANCELLED" } : o))
+          );
+          fetchLatestOrders();
+        });
+      }
+    } catch (err) {
+      console.error("[Echo] WebSocket connection failed, fallback to polling:", err);
+    }
+
+    // نبض دوري كل 30 ثانية كاحتياطي أمان (بدلاً من 8 ثواني) لتقليل الضغط بنسبة 75%
+    const interval = setInterval(fetchLatestOrders, 30000);
+
+    return () => {
+      clearInterval(interval);
+      try {
+        if (echo && merchantId) {
+          echo.leave(`merchant.${merchantId}`);
         }
-      })
-      .catch(() => {});
-  }, [token]);
+      } catch {}
+    };
+  }, [fetchLatestOrders, token, user]);
 
   // Toast Helper
   const showToast = (text: string, type: "success" | "error" = "success") => {
@@ -215,116 +314,87 @@ export default function MerchantOrdersView({
   // =========================================================================
   // Order Actions
   // =========================================================================
-
-  // 1. Create Test Order
   const handleCreateTestOrder = async () => {
     setLoadingAction(true);
     try {
       const res = await merchantApi.createTestOrder(token);
       if (res.success && res.order) {
-        const newOrder = {
-          ...res.order,
-          image_url:
-            orders.length % 2 === 0
-              ? "/images/assets/dish-tagine.jpg"
-              : "/images/assets/dish-koshary.jpg",
-        };
-        setOrders((prev) => [newOrder, ...prev]);
-        setStats((prev) => ({
-          ...prev,
-          pending: prev.pending + 1,
-        }));
-        showToast("تم إنشاء طلب تجريبي جديد بنجاح! 🔔 تفقد الطلبات الجديدة");
+        setOrders((prev) => [res.order, ...prev]);
+        setStats((prev) => ({ ...prev, pending: prev.pending + 1 }));
+        soundService.playOrderBell();
+        showToast(`طلب تجريبي جديد وصل! 🔔 #${res.order.order_code}`);
       } else {
         const fakeCode = "ORD-" + Math.floor(1000 + Math.random() * 9000);
         const fakeOrder: Order = {
           id: "fake-" + Date.now(),
           order_code: fakeCode,
-          customer_name: "أحمد حسني",
-          customer_phone: "01234567890",
-          delivery_address: "الدقي - ميدان المساحة",
+          customer_name: "عمرو عبدالعزيز",
+          customer_phone: "01099887766",
+          delivery_address: "الدقي - شارع مصدق - الدور 4",
           status: "PENDING",
           payment_method: "CASH_ON_DELIVERY",
-          total_amount: 195,
+          total_amount: 215,
           prep_time_minutes: 40,
-          order_notes: "من فضلك زيادة ليمون ومخلل",
-          image_url: "/images/assets/dish-tagine.jpg",
+          order_notes: "من فضلك زيادة ليمون ومخلل بلدي",
+          created_at: new Date().toISOString(),
           items: [
-            {
-              product_name_at_purchase: "طاجن كوارع ورق عنب",
-              unit_price: 160,
-              quantity: 1,
-              total_price: 160,
-            },
-            {
-              product_name_at_purchase: "شوربة لسان عصفور",
-              unit_price: 35,
-              quantity: 1,
-              total_price: 35,
-            },
+            { product_name_at_purchase: "طاجن عكاوي بالبصل الأورما", unit_price: 180, quantity: 1, total_price: 180, item_notes: "مسبك على الهادي" },
+            { product_name_at_purchase: "شوربة لسان عصفور بلدي", unit_price: 35, quantity: 1, total_price: 35 },
           ],
         };
         setOrders((prev) => [fakeOrder, ...prev]);
         setStats((prev) => ({ ...prev, pending: prev.pending + 1 }));
-        showToast(`تم إنشاء الطلب التجريبي #${fakeCode} بنجاح! 🔔`);
+        soundService.playOrderBell();
+        showToast(`طلب تجريبي #${fakeCode} اتضاف بنجاح! 🔔`);
       }
     } catch {
-      showToast("تم إنشاء طلب تجريبي محلياً للتجربة! 🔔");
+      soundService.playOrderBell();
+      showToast("تم إنشاء طلب تجريبي للتجربة 🔔");
     } finally {
       setLoadingAction(false);
     }
   };
 
-  // 2. Open Accept Modal
   const openAcceptModal = (order: Order) => {
     setSelectedOrderForAccept(order);
     setPrepTimeInput(order.prep_time_minutes || 45);
     setIsAcceptModalOpen(true);
   };
 
-  // Confirm Accept Order
   const handleConfirmAccept = async () => {
     if (!selectedOrderForAccept) return;
     setLoadingAction(true);
+    const orderAccepted = selectedOrderForAccept;
 
     try {
-      const res = await merchantApi.acceptOrder(
-        token,
-        selectedOrderForAccept.id,
-        prepTimeInput
+      await merchantApi.acceptOrder(token, orderAccepted.id, prepTimeInput);
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderAccepted.id
+            ? { ...o, status: "PREPARING", prep_time_minutes: prepTimeInput, accepted_at: new Date().toISOString() }
+            : o
+        )
       );
+      setStats((prev) => ({ ...prev, pending: Math.max(0, prev.pending - 1), preparing: prev.preparing + 1 }));
+      showToast(`تم قبول الطلب #${orderAccepted.order_code}! 👨‍🍳 جاري التجهيز`);
 
-      if (res.success) {
-        setOrders((prev) =>
-          prev.map((o) =>
-            o.id === selectedOrderForAccept.id
-              ? { ...o, status: "PREPARING", prep_time_minutes: prepTimeInput }
-              : o
-          )
-        );
-        setStats((prev) => ({
-          ...prev,
-          pending: Math.max(0, prev.pending - 1),
-          preparing: prev.preparing + 1,
-        }));
-        showToast(`تم قبول الطلب #${selectedOrderForAccept.order_code} بنجاح! جاري التجهيز 👨‍🍳`);
-      } else {
-        setOrders((prev) =>
-          prev.map((o) =>
-            o.id === selectedOrderForAccept.id
-              ? { ...o, status: "PREPARING", prep_time_minutes: prepTimeInput }
-              : o
-          )
-        );
-        setStats((prev) => ({
-          ...prev,
-          pending: Math.max(0, prev.pending - 1),
-          preparing: prev.preparing + 1,
-        }));
-        showToast(`تم قبول الطلب #${selectedOrderForAccept.order_code}! 👨‍🍳`);
+      // Auto-Print Receipt if enabled
+      if (autoPrintEnabled) {
+        setOrderForReceipt(orderAccepted);
+        setTimeout(() => {
+          window.print();
+        }, 300);
       }
     } catch {
-      showToast("تم تحديث حالة الطلب إلى جاري التجهيز");
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderAccepted.id
+            ? { ...o, status: "PREPARING", prep_time_minutes: prepTimeInput }
+            : o
+        )
+      );
+      setStats((prev) => ({ ...prev, pending: Math.max(0, prev.pending - 1), preparing: prev.preparing + 1 }));
+      showToast(`تم قبول الطلب #${orderAccepted.order_code}! 👨‍🍳`);
     } finally {
       setIsAcceptModalOpen(false);
       setSelectedOrderForAccept(null);
@@ -332,58 +402,40 @@ export default function MerchantOrdersView({
     }
   };
 
-  // 3. Open Reject Modal
   const openRejectModal = (order: Order) => {
     setSelectedOrderForReject(order);
     setRejectionReasonInput("");
     setIsRejectModalOpen(true);
   };
 
-  // Confirm Reject Order
   const handleConfirmReject = async () => {
     if (!selectedOrderForReject) return;
     if (!rejectionReasonInput.trim() || rejectionReasonInput.trim().length < 5) {
-      showToast("يرجى كتابة سبب الرفض بحد أدنى 5 أحرف", "error");
+      showToast("يرجى كتابة سبب الرفض (5 أحرف على الأقل)", "error");
       return;
     }
-
     setLoadingAction(true);
     try {
-      const res = await merchantApi.rejectOrder(
-        token,
-        selectedOrderForReject.id,
-        rejectionReasonInput.trim()
+      await merchantApi.rejectOrder(token, selectedOrderForReject.id, rejectionReasonInput.trim());
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === selectedOrderForReject.id
+            ? { ...o, status: "REJECTED", rejection_reason: rejectionReasonInput }
+            : o
+        )
       );
-
-      if (res.success) {
-        setOrders((prev) =>
-          prev.map((o) =>
-            o.id === selectedOrderForReject.id
-              ? { ...o, status: "REJECTED", rejection_reason: rejectionReasonInput }
-              : o
-          )
-        );
-        setStats((prev) => ({
-          ...prev,
-          pending: Math.max(0, prev.pending - 1),
-        }));
-        showToast(`تم رفض الطلب #${selectedOrderForReject.order_code}`);
-      } else {
-        setOrders((prev) =>
-          prev.map((o) =>
-            o.id === selectedOrderForReject.id
-              ? { ...o, status: "REJECTED", rejection_reason: rejectionReasonInput }
-              : o
-          )
-        );
-        setStats((prev) => ({
-          ...prev,
-          pending: Math.max(0, prev.pending - 1),
-        }));
-        showToast(`تم رفض الطلب #${selectedOrderForReject.order_code}`);
-      }
+      setStats((prev) => ({ ...prev, pending: Math.max(0, prev.pending - 1) }));
+      showToast(`تم رفض الطلب #${selectedOrderForReject.order_code}`);
     } catch {
-      showToast("تم رفض الطلب");
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === selectedOrderForReject.id
+            ? { ...o, status: "REJECTED", rejection_reason: rejectionReasonInput }
+            : o
+        )
+      );
+      setStats((prev) => ({ ...prev, pending: Math.max(0, prev.pending - 1) }));
+      showToast(`تم رفض الطلب #${selectedOrderForReject.order_code}`);
     } finally {
       setIsRejectModalOpen(false);
       setSelectedOrderForReject(null);
@@ -391,700 +443,670 @@ export default function MerchantOrdersView({
     }
   };
 
-  // 4. Mark Ready
   const handleMarkReady = async (order: Order) => {
     setLoadingAction(true);
     try {
-      const res = await merchantApi.markOrderReady(token, order.id);
-      if (res.success) {
-        setOrders((prev) =>
-          prev.map((o) => (o.id === order.id ? { ...o, status: "READY" } : o))
-        );
-        setStats((prev) => ({
-          ...prev,
-          preparing: Math.max(0, prev.preparing - 1),
-          ready: prev.ready + 1,
-        }));
-        showToast(`الطلب #${order.order_code} جاهز للتسليم! تم إشعار كابتن التوصيل 📦`);
-      } else {
-        setOrders((prev) =>
-          prev.map((o) => (o.id === order.id ? { ...o, status: "READY" } : o))
-        );
-        setStats((prev) => ({
-          ...prev,
-          preparing: Math.max(0, prev.preparing - 1),
-          ready: prev.ready + 1,
-        }));
-        showToast(`الطلب #${order.order_code} جاهز للتسليم! 📦`);
-      }
+      await merchantApi.markOrderReady(token, order.id);
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: "READY" } : o)));
+      setStats((prev) => ({ ...prev, preparing: Math.max(0, prev.preparing - 1), ready: prev.ready + 1 }));
+      showToast(`الطلب #${order.order_code} جاهز! 📦 تم إشعار المندوب`);
     } catch {
-      showToast(`الطلب جاهز للتسليم! 📦`);
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: "READY" } : o)));
+      setStats((prev) => ({ ...prev, preparing: Math.max(0, prev.preparing - 1), ready: prev.ready + 1 }));
+      showToast(`الطلب #${order.order_code} جاهز للتسليم! 📦`);
     } finally {
       setLoadingAction(false);
     }
   };
 
-  // Filtered orders list
+  // Trigger Print for an order
+  const handlePrintReceipt = (order: Order) => {
+    setOrderForReceipt(order);
+    setTimeout(() => {
+      window.print();
+    }, 200);
+  };
+
+  // Preview Receipt in modal
+  const handlePreviewReceipt = (order: Order) => {
+    setOrderForReceipt(order);
+    setIsReceiptModalOpen(true);
+  };
+
+  // Toggle Fullscreen (Kitchen Display System mode)
+  const toggleKdsFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsKdsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsKdsFullscreen(false);
+    }
+  };
+
   const filteredOrders = orders.filter((o) => {
     if (activeFilter === "ALL") return true;
     if (activeFilter === "PENDING") return o.status === "PENDING";
     if (activeFilter === "PREPARING") return o.status === "PREPARING";
     if (activeFilter === "READY") return o.status === "READY";
-    if (activeFilter === "CANCELLED")
-      return o.status === "CANCELLED" || o.status === "REJECTED";
+    if (activeFilter === "CANCELLED") return o.status === "CANCELLED" || o.status === "REJECTED";
     return true;
   });
 
-  return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#faf5eb] text-[#3a2818] font-sans selection:bg-[#d32f2f] selection:text-white">
-      {/* =========================================================================
-          Main Content Column (Left in RTL layout)
-         ========================================================================= */}
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto overflow-x-hidden relative">
-        {/* Top Header Background Banner Strip */}
-        <div className="relative w-full bg-[#f6edd9] border-b border-[#e6d6bc] px-6 py-3.5 flex items-center justify-between shadow-xs z-10">
-          {/* Header Left: Notifications, Profile, Create Order */}
-          <div className="flex items-center gap-3">
-            {/* Notification Bell */}
+  const statusConfig = {
+    PENDING:   { label: "قيد الانتظار", color: "bg-amber-500/15 border-amber-500/30 text-amber-300", icon: Hourglass },
+    PREPARING: { label: "جاري التجهيز", color: "bg-blue-500/15 border-blue-500/30 text-blue-300", icon: ChefHat },
+    READY:     { label: "جاهز للتسليم", color: "bg-souqna-emerald/15 border-souqna-emerald/30 text-souqna-emerald", icon: CheckCircle2 },
+    DELIVERED: { label: "تم التسليم", color: "bg-souqna-emerald/10 border-souqna-emerald/20 text-souqna-emerald/70", icon: PackageCheck },
+    CANCELLED: { label: "ملغي", color: "bg-red-500/15 border-red-500/30 text-red-400", icon: XCircle },
+    REJECTED:  { label: "مرفوض", color: "bg-red-500/15 border-red-500/30 text-red-400", icon: XCircle },
+  };
+
+  // Render individual Order Card
+  const renderOrderCard = (order: Order, isCompact = false) => {
+    const isPending = order.status === "PENDING";
+    const isPreparing = order.status === "PREPARING";
+    const isReady = order.status === "READY";
+    const cfg = statusConfig[order.status] || statusConfig.CANCELLED;
+    const StatusIcon = cfg.icon;
+
+    return (
+      <div
+        key={order.id}
+        className={`card-glass border-2 p-4 flex flex-col justify-between transition-all hover:border-souqna-gold/40 ${
+          isPending ? "border-amber-500/40 bg-amber-500/5 ring-1 ring-amber-500/20" :
+          isPreparing ? "border-blue-500/25 bg-blue-500/5" :
+          isReady ? "border-souqna-emerald/30 bg-souqna-emerald/5" :
+          "border-souqna-border"
+        }`}
+      >
+        {/* Card Header */}
+        <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-souqna-border">
+          <div className="flex items-center gap-2">
+            <span className="font-black text-souqna-text-primary text-sm font-mono tracking-wider">
+              #{order.order_code}
+            </span>
+            {isPending && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className={`px-2.5 py-0.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 ${cfg.color}`}>
+              <StatusIcon className="w-3 h-3" />
+              <span>{cfg.label}</span>
+            </div>
+            {/* Quick print button */}
             <button
               type="button"
-              onClick={() => showToast(`لديك ${stats.pending} طلبات جديدة قيد الانتظار! 🔔`)}
-              className="relative p-2 rounded-2xl bg-[#fffdfa] border border-[#e8dac1] hover:border-[#d32f2f] hover:bg-amber-50/50 transition-all text-[#5c3a16] shadow-xs active:scale-95"
-              title="الإشعارات والتنبيهات"
+              onClick={() => handlePrintReceipt(order)}
+              className="p-1 rounded-lg text-souqna-text-muted hover:text-souqna-gold hover:bg-souqna-surface transition-colors"
+              title="طباعة بون المطبخ (80mm)"
             >
-              <Bell className="w-5 h-5 text-[#8c2b18]" />
-              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#d32f2f] text-white text-[11px] font-black rounded-full flex items-center justify-center border-2 border-white shadow">
-                3
-              </span>
+              <Printer className="w-4 h-4" />
             </button>
+          </div>
+        </div>
 
-            {/* Profile Pill */}
-            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-[#fffdfa] border border-[#e8dac1] shadow-xs">
-              <div className="relative w-8 h-8 rounded-full overflow-hidden border border-[#d97706]/40">
-                <Image
-                  src="/images/assets/chef-logo.jpg"
-                  alt="Avatar"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex flex-col text-right">
-                <span className="text-xs font-black text-[#3a2818] leading-tight">
-                  الشيف أم أحمد
-                </span>
-                <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  متصل الآن
-                </span>
+        {/* Customer & Location Details */}
+        <div className="space-y-1.5 mb-3">
+          <div className="flex items-center justify-between text-xs">
+            <a
+              href={`tel:${order.customer_phone}`}
+              className="flex items-center gap-1 text-souqna-gold hover:underline font-mono"
+              dir="ltr"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Phone className="w-3 h-3" />
+              <span>{order.customer_phone}</span>
+            </a>
+            <span className="font-bold text-souqna-text-primary">👤 {order.customer_name}</span>
+          </div>
+          <div className="flex items-center justify-end gap-1 text-xs text-souqna-text-secondary">
+            <span className="truncate">{order.delivery_address}</span>
+            <MapPin className="w-3.5 h-3.5 text-souqna-gold shrink-0" />
+          </div>
+        </div>
+
+        {/* Items Summary */}
+        <div className="bg-souqna-base/60 rounded-xl p-2.5 space-y-1 mb-3">
+          {order.items?.map((item, idx) => (
+            <div key={idx} className="flex items-center justify-between text-xs">
+              <span className="text-souqna-text-muted font-mono">{item.quantity} × {item.unit_price} ج</span>
+              <div className="text-right">
+                <span className="text-souqna-text-primary font-semibold">{item.product_name_at_purchase}</span>
+                {item.item_notes && (
+                  <span className="block text-[10px] text-amber-300/80 font-normal">({item.item_notes})</span>
+                )}
               </div>
             </div>
+          ))}
+        </div>
 
-            {/* Button: + إنشاء طلب تجريبي */}
+        {/* Notes */}
+        {order.order_notes && (
+          <div className="flex items-center justify-end gap-1.5 text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-2.5 py-1.5 mb-3">
+            <span className="line-clamp-1">ملاحظة: {order.order_notes}</span>
+            <MessageSquare className="w-3 h-3 shrink-0 text-amber-400" />
+          </div>
+        )}
+
+        {/* Prep timer for preparing orders */}
+        {isPreparing && (
+          <div className="flex items-center justify-between text-xs text-blue-300 bg-blue-500/10 border border-blue-500/25 rounded-xl px-3 py-1.5 mb-3">
+            <div className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 animate-spin" />
+              <span>جاري التحضير</span>
+            </div>
+            <span className="font-mono font-bold">{order.prep_time_minutes || 45} دقيقة مستهدفة</span>
+          </div>
+        )}
+
+        {/* Card Footer: Price & Primary Actions */}
+        <div className="flex items-center justify-between pt-3 border-t border-souqna-border">
+          <div className="flex items-center gap-1.5">
+            {isPending && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => openRejectModal(order)}
+                  className="px-2.5 py-1.5 rounded-xl border border-red-500/40 text-red-400 hover:bg-red-500/10 text-xs font-bold transition-all"
+                >
+                  رفض
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAcceptModal(order)}
+                  className="px-3.5 py-1.5 rounded-xl bg-souqna-emerald text-souqna-base font-bold text-xs flex items-center gap-1 hover:brightness-110 shadow-md shadow-souqna-emerald/20 transition-all"
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  قبول وبدء
+                </button>
+              </>
+            )}
+
+            {isPreparing && (
+              <button
+                type="button"
+                onClick={() => handleMarkReady(order)}
+                className="btn-gold px-3.5 py-1.5 text-xs flex items-center gap-1.5"
+              >
+                <PackageCheck className="w-3.5 h-3.5" />
+                جاهز للتسليم
+              </button>
+            )}
+
+            {isReady && (
+              <div className="flex items-center gap-1 text-xs text-souqna-emerald font-bold">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>في انتظار المندوب</span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedOrderForDetail(order);
+                setIsDetailModalOpen(true);
+              }}
+              className="p-1.5 rounded-xl text-souqna-text-muted hover:text-white hover:bg-souqna-surface"
+              title="عرض التفاصيل الكاملة"
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="text-right">
+            <span className="text-souqna-gold font-black text-base font-mono">{order.total_amount}</span>
+            <span className="text-souqna-text-muted text-xs mr-1">ج.م</span>
+            <div className="text-souqna-text-muted text-[10px]">
+              {order.payment_method === "CASH_ON_DELIVERY" ? "💵 كاش" : "💳 محفظة"}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-full print:p-0" dir="rtl">
+      {/* ── Toast ── */}
+      {toastMessage && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-2 text-sm font-bold transition-all ${
+            toastMessage.type === "success"
+              ? "bg-souqna-emerald text-white border border-souqna-emerald/50"
+              : "bg-red-600 text-white border border-red-400"
+          }`}
+        >
+          {toastMessage.type === "success" ? (
+            <CheckCircle2 className="w-4 h-4 text-white/80" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-white/80" />
+          )}
+          <span>{toastMessage.text}</span>
+        </div>
+      )}
+
+      {/* ── Print Receipt Component (Renders Hidden Printable Area) ── */}
+      <KitchenReceipt
+        order={orderForReceipt}
+        storeName={storeName}
+        showPreviewModal={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+      />
+
+      <div className="p-4 md:p-6 space-y-5">
+        {/* ── Page Header & Controls ── */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <UtensilsCrossed className="w-5 h-5 text-souqna-gold" />
+              <h1 className="text-souqna-text-primary font-black text-xl">
+                الطلبات المباشرة
+              </h1>
+              {stats.pending > 0 && (
+                <span className="bg-amber-500 text-souqna-base text-xs font-black px-2 py-0.5 rounded-full animate-bounce">
+                  {stats.pending} طلب جديد!
+                </span>
+              )}
+            </div>
+            <p className="text-souqna-text-muted text-xs mt-0.5">
+              مراقبة الطلبات اللحظية، تشغيل المطبخ، وطباعة بونات الفواتير 80mm
+            </p>
+          </div>
+
+          {/* Action Tools: Sound Toggle, Auto-print, View Switcher, Fullscreen */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Sound Bell Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleSound}
+              className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
+                soundActive
+                  ? "bg-souqna-gold/15 border-souqna-gold/40 text-souqna-gold"
+                  : "bg-souqna-surface border-souqna-border text-souqna-text-muted"
+              }`}
+              title={soundActive ? "جرس الطلبات مفعّل (اضغط للكتم)" : "جرس الطلبات مكتوم (اضغط للتفعيل)"}
+            >
+              {soundActive ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              <span className="hidden sm:inline">{soundActive ? "صوت التنبيه" : "مكتوم"}</span>
+            </button>
+
+            {/* Auto Print Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleAutoPrint}
+              className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
+                autoPrintEnabled
+                  ? "bg-souqna-emerald/15 border-souqna-emerald/40 text-souqna-emerald"
+                  : "bg-souqna-surface border-souqna-border text-souqna-text-muted"
+              }`}
+              title="طباعة بون المطبخ تلقائياً بمجرد قبول الطلب"
+            >
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">{autoPrintEnabled ? "طباعة تلقائية 🟢" : "طباعة يدوية"}</span>
+            </button>
+
+            {/* View Mode Switcher: Grid vs Kanban */}
+            <div className="flex items-center bg-souqna-surface border border-souqna-border rounded-xl p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === "grid"
+                    ? "bg-souqna-gold text-souqna-base"
+                    : "text-souqna-text-muted hover:text-white"
+                }`}
+                title="عرض شبكي"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("kanban")}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === "kanban"
+                    ? "bg-souqna-gold text-souqna-base"
+                    : "text-souqna-text-muted hover:text-white"
+                }`}
+                title="عرض لوحة الكانبان"
+              >
+                <Columns3 className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Fullscreen (KDS mode) */}
+            <button
+              type="button"
+              onClick={toggleKdsFullscreen}
+              className="p-2 rounded-xl bg-souqna-surface border border-souqna-border text-souqna-text-muted hover:text-souqna-gold transition-colors"
+              title="شاشة المطبخ الكاملة (KDS Mode)"
+            >
+              {isKdsFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+
+            {/* Create Test Order */}
             <button
               type="button"
               disabled={loadingAction}
               onClick={handleCreateTestOrder}
-              className="flex items-center gap-2 px-5 py-2 rounded-2xl bg-gradient-to-r from-[#ff7a00] to-[#e65100] text-white text-xs font-black shadow-md hover:shadow-lg hover:brightness-105 active:scale-95 transition-all disabled:opacity-50"
+              className="btn-gold flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold"
             >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>{loadingAction ? "جاري الإنشاء..." : "إنشاء طلب تجريبي"}</span>
+              {loadingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              <span>طلب تجريبي</span>
             </button>
-          </div>
-
-          {/* Header Right: Store Title & Icon */}
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm md:text-base font-black text-[#3a2818]">
-              حواديت - لوحة تحكم التاجر
-            </span>
-            <div className="w-9 h-9 rounded-2xl bg-[#8c2b18]/10 border border-[#8c2b18]/20 flex items-center justify-center text-[#8c2b18]">
-              <Store className="w-5 h-5" />
-            </div>
           </div>
         </div>
 
-        {/* =========================================================================
-            Toast Notifications
-           ========================================================================= */}
-        {toastMessage && (
+        {/* ── Stats Strip Cards ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div
-            className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-sm font-bold animate-bounce ${
-              toastMessage.type === "success"
-                ? "bg-emerald-600 text-white border border-emerald-400"
-                : "bg-red-600 text-white border border-red-400"
+            onClick={() => setActiveFilter("PENDING")}
+            className={`card-glass p-3.5 cursor-pointer transition-all border-2 ${
+              activeFilter === "PENDING"
+                ? "border-amber-500/60 bg-amber-500/10"
+                : "border-transparent hover:border-amber-500/30"
             }`}
           >
-            {toastMessage.type === "success" ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-200" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-red-200" />
-            )}
-            <span>{toastMessage.text}</span>
-          </div>
-        )}
-
-        {/* =========================================================================
-            Main Body Container
-           ========================================================================= */}
-        <div className="p-6 space-y-5">
-          {/* 1. Quick Stats Container (إحصائيات اليوم السريعة) */}
-          <div className="bg-[#fffdf9] border-2 border-[#eddcc4] rounded-3xl p-4 shadow-xs">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#f2e5d3]">
-              <div className="flex items-center gap-2 font-black text-sm text-[#3a2818]">
-                <BarChart3 className="w-4 h-4 text-[#e67e22]" />
-                <span>إحصائيات اليوم السريعة</span>
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                <Hourglass className="w-4 h-4 text-amber-400" />
               </div>
-              <span className="text-xs font-bold text-stone-500">
-                مباشر من نقاط البيع والمطبخ
-              </span>
+              <span className="text-2xl font-black text-amber-400 font-mono">{stats.pending}</span>
             </div>
-
-            {/* 4 Responsive Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Card 1: قيد الانتظار */}
-              <div
-                onClick={() => setActiveFilter("PENDING")}
-                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
-                  activeFilter === "PENDING"
-                    ? "bg-amber-100/60 border-amber-500 ring-2 ring-amber-300"
-                    : "bg-[#fefaf2] border-[#f5e3ca] hover:border-amber-400"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center">
-                    <Hourglass className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold text-[#5c3a16]">قيد الانتظار</span>
-                </div>
-                <span className="text-2xl font-black text-[#e67e22]">{stats.pending}</span>
-              </div>
-
-              {/* Card 2: جاري التحضير */}
-              <div
-                onClick={() => setActiveFilter("PREPARING")}
-                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
-                  activeFilter === "PREPARING"
-                    ? "bg-blue-100/60 border-blue-500 ring-2 ring-blue-300"
-                    : "bg-[#f3f9ff] border-[#cbe4fb] hover:border-blue-400"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-700 flex items-center justify-center">
-                    <ChefHat className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold text-[#1e4e79]">جاري التحضير</span>
-                </div>
-                <span className="text-2xl font-black text-[#2980b9]">{stats.preparing}</span>
-              </div>
-
-              {/* Card 3: جاهز للتسليم */}
-              <div
-                onClick={() => setActiveFilter("READY")}
-                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
-                  activeFilter === "READY"
-                    ? "bg-emerald-100/60 border-emerald-500 ring-2 ring-emerald-300"
-                    : "bg-[#f2fcf5] border-[#c5eed4] hover:border-emerald-400"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold text-[#14532d]">جاهز للتسليم</span>
-                </div>
-                <span className="text-2xl font-black text-[#27ae60]">{stats.ready}</span>
-              </div>
-
-              {/* Card 4: مبيعات اليوم */}
-              <div
-                onClick={() => showToast(`إجمالي مبيعات اليوم: ${stats.today_sales} ج.م`)}
-                className="p-3.5 rounded-2xl border-2 bg-[#fcf9f2] border-[#f2e0c4] hover:border-amber-400 transition-all cursor-pointer flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-amber-600/15 text-amber-800 flex items-center justify-center">
-                    <Coins className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold text-[#5c3a16]">مبيعات اليوم</span>
-                </div>
-                <span className="text-lg md:text-xl font-black text-[#3a2818]">
-                  {stats.today_sales} <span className="text-xs font-bold">ج.م</span>
-                </span>
-              </div>
-            </div>
+            <p className="text-souqna-text-muted text-xs font-semibold mt-2">قيد الانتظار (جديد)</p>
           </div>
 
-          {/* 2. Filter Tabs & Sorting Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Filter Pills */}
-            <div className="flex items-center gap-2">
-              {/* الكل */}
-              <button
-                type="button"
-                onClick={() => setActiveFilter("ALL")}
-                className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeFilter === "ALL"
-                    ? "bg-[#d32f2f] text-white shadow-md shadow-red-900/20"
-                    : "bg-[#fffdfa] border-2 border-[#eddcc4] text-[#5c3a16] hover:bg-amber-50"
-                }`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>الكل</span>
-              </button>
+          <div
+            onClick={() => setActiveFilter("PREPARING")}
+            className={`card-glass p-3.5 cursor-pointer transition-all border-2 ${
+              activeFilter === "PREPARING"
+                ? "border-blue-500/60 bg-blue-500/10"
+                : "border-transparent hover:border-blue-500/30"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                <ChefHat className="w-4 h-4 text-blue-400" />
+              </div>
+              <span className="text-2xl font-black text-blue-400 font-mono">{stats.preparing}</span>
+            </div>
+            <p className="text-souqna-text-muted text-xs font-semibold mt-2">جاري التجهيز</p>
+          </div>
 
-              {/* قيد الانتظار */}
-              <button
-                type="button"
-                onClick={() => setActiveFilter("PENDING")}
-                className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeFilter === "PENDING"
-                    ? "bg-amber-600 text-white shadow-md shadow-amber-900/20"
-                    : "bg-[#fffdfa] border-2 border-[#eddcc4] text-[#5c3a16] hover:bg-amber-50"
-                }`}
-              >
-                <Hourglass className="w-3.5 h-3.5" />
-                <span>قيد الانتظار (جديد)</span>
-              </button>
+          <div
+            onClick={() => setActiveFilter("READY")}
+            className={`card-glass p-3.5 cursor-pointer transition-all border-2 ${
+              activeFilter === "READY"
+                ? "border-souqna-emerald/60 bg-souqna-emerald/10"
+                : "border-transparent hover:border-souqna-emerald/30"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 rounded-xl bg-souqna-emerald/15 flex items-center justify-center">
+                <CheckCircle2 className="w-4 h-4 text-souqna-emerald" />
+              </div>
+              <span className="text-2xl font-black text-souqna-emerald font-mono">{stats.ready}</span>
+            </div>
+            <p className="text-souqna-text-muted text-xs font-semibold mt-2">جاهز للتسليم</p>
+          </div>
 
-              {/* جاري التجهيز */}
-              <button
-                type="button"
-                onClick={() => setActiveFilter("PREPARING")}
-                className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeFilter === "PREPARING"
-                    ? "bg-[#2980b9] text-white shadow-md shadow-blue-900/20"
-                    : "bg-[#fffdfa] border-2 border-[#eddcc4] text-[#5c3a16] hover:bg-amber-50"
-                }`}
-              >
-                <ChefHat className="w-3.5 h-3.5" />
-                <span>جاري التجهيز</span>
-              </button>
+          <div className="card-glass p-3.5 border-2 border-transparent hover:border-souqna-gold/30 transition-all">
+            <div className="flex items-center justify-between">
+              <div className="w-8 h-8 rounded-xl bg-souqna-gold/15 flex items-center justify-center">
+                <Coins className="w-4 h-4 text-souqna-gold" />
+              </div>
+              <div className="text-right font-mono">
+                <span className="text-xl font-black text-souqna-gold">{stats.today_sales}</span>
+                <span className="text-xs text-souqna-gold/70 mr-1">ج.م</span>
+              </div>
+            </div>
+            <p className="text-souqna-text-muted text-xs font-semibold mt-2">مبيعات اليوم</p>
+          </div>
+        </div>
 
-              {/* جاهز */}
-              <button
-                type="button"
-                onClick={() => setActiveFilter("READY")}
-                className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeFilter === "READY"
-                    ? "bg-[#27ae60] text-white shadow-md shadow-emerald-900/20"
-                    : "bg-[#fffdfa] border-2 border-[#eddcc4] text-[#5c3a16] hover:bg-amber-50"
-                }`}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>جاهز</span>
-              </button>
-
-              {/* الملغية */}
-              <button
-                type="button"
-                onClick={() => setActiveFilter("CANCELLED")}
-                className={`px-4 py-2 rounded-2xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                  activeFilter === "CANCELLED"
-                    ? "bg-red-700 text-white shadow-md shadow-red-900/20"
-                    : "bg-[#fffdfa] border-2 border-[#eddcc4] text-[#5c3a16] hover:bg-amber-50"
-                }`}
-              >
-                <XCircle className="w-3.5 h-3.5 text-red-500" />
-                <span>الملغية</span>
-              </button>
+        {/* ── View Filter Tabs (Grid Mode Only) ── */}
+        {viewMode === "grid" && (
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {[
+                { id: "ALL", label: "الكل", count: orders.length },
+                { id: "PENDING", label: "انتظار (جديد)", count: stats.pending },
+                { id: "PREPARING", label: "تجهيز", count: stats.preparing },
+                { id: "READY", label: "جاهز", count: stats.ready },
+                { id: "CANCELLED", label: "الملغية", count: null },
+              ].map(({ id, label, count }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setActiveFilter(id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    activeFilter === id
+                      ? "bg-souqna-gold text-souqna-base shadow-lg shadow-souqna-gold/20"
+                      : "bg-souqna-surface border border-souqna-border text-souqna-text-secondary hover:border-souqna-gold/40"
+                  }`}
+                >
+                  <span>{label}</span>
+                  {count !== null && count > 0 && (
+                    <span className="bg-souqna-base/80 text-souqna-gold text-[10px] font-mono px-1.5 py-0.2 rounded-full">
+                      {count}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
 
-            {/* Sort Dropdown */}
             <button
               type="button"
               onClick={() => {
                 setSortOrder((prev) => (prev === "newest" ? "oldest" : "newest"));
                 setOrders((prev) => [...prev].reverse());
-                showToast(
-                  sortOrder === "newest"
-                    ? "تم الترتيب حسب الأقدم"
-                    : "تم الترتيب حسب الأحدث"
-                );
               }}
-              className="px-4 py-2 rounded-2xl bg-[#fffdfa] border-2 border-[#eddcc4] text-xs font-bold text-[#5c3a16] hover:border-[#d32f2f] transition-all flex items-center gap-2 shadow-xs cursor-pointer"
+              className="btn-ghost flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
             >
-              <ChevronDown className="w-4 h-4 text-[#8c2b18]" />
-              <span>
-                {sortOrder === "newest" ? "ترتيب حسب الأحدث" : "ترتيب حسب الأقدم"}
-              </span>
+              <ChevronDown className="w-4 h-4" />
+              <span>{sortOrder === "newest" ? "الأحدث أولاً" : "الأقدم أولاً"}</span>
             </button>
           </div>
+        )}
 
-          {/* 3. Orders Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* =====================================================================
+            VIEW 1: GRID VIEW
+           ===================================================================== */}
+        {viewMode === "grid" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {filteredOrders.length === 0 ? (
-              <div className="col-span-2 py-16 text-center bg-[#fffdf9] border-2 border-dashed border-[#e6d6bc] rounded-3xl">
-                <p className="text-sm font-bold text-stone-500">
-                  لا توجد طلبات تطابق الفلتر المختار حالياً.
-                </p>
+              <div className="col-span-2 py-20 text-center card-glass border-2 border-dashed border-souqna-border">
+                <UtensilsCrossed className="w-12 h-12 text-souqna-text-muted mx-auto mb-3 opacity-40" />
+                <p className="text-souqna-text-secondary font-semibold text-sm">لا توجد طلبات تطابق الفلتر المختار</p>
                 <button
                   type="button"
                   onClick={handleCreateTestOrder}
-                  className="mt-3 text-xs font-bold text-[#d32f2f] hover:underline"
+                  className="mt-3 text-xs font-bold text-souqna-gold hover:underline"
                 >
-                  اضغط هنا لإنشاء طلب تجريبي جديد
+                  + أنشئ طلب تجريبي للاختبار
                 </button>
               </div>
             ) : (
-              filteredOrders.map((order) => {
-                const isPending = order.status === "PENDING";
-                const isPreparing = order.status === "PREPARING";
-                const isReady = order.status === "READY";
-
-                return (
-                  <div
-                    key={order.id}
-                    className="bg-[#fffefb] border-2 border-[#eddcc4] hover:border-[#d97706]/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
-                  >
-                    {/* Card Header: Status Badge & Order Code */}
-                    <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-[#f2e5d3]">
-                      {/* Status Badge */}
-                      {isPending && (
-                        <div className="px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 text-xs font-black flex items-center gap-1.5">
-                          <Bell className="w-3.5 h-3.5 text-amber-700" />
-                          <span>قيد الانتظار</span>
-                        </div>
-                      )}
-                      {isPreparing && (
-                        <div className="px-3 py-1 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-900 text-xs font-black flex items-center gap-1.5">
-                          <ChefHat className="w-3.5 h-3.5 text-blue-700" />
-                          <span>جاري التحضير</span>
-                        </div>
-                      )}
-                      {isReady && (
-                        <div className="px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-900 text-xs font-black flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>جاهز للتسليم</span>
-                        </div>
-                      )}
-                      {!isPending && !isPreparing && !isReady && (
-                        <div className="px-3 py-1 rounded-xl bg-red-500/15 border border-red-500/30 text-red-900 text-xs font-black flex items-center gap-1.5">
-                          <XCircle className="w-3.5 h-3.5 text-red-700" />
-                          <span>ملغي / مرفوض</span>
-                        </div>
-                      )}
-
-                      {/* Order Code */}
-                      <span className="text-base font-black text-[#3a2818] tracking-wide">
-                        طلب رقم #{order.order_code}
-                      </span>
-                    </div>
-
-                    {/* Card Body: Dish Image & Details */}
-                    <div className="flex gap-4 items-start">
-                      {/* Food Picture */}
-                      <div className="relative w-28 h-28 rounded-2xl overflow-hidden border-2 border-[#eddcc4] shrink-0 shadow-xs">
-                        <Image
-                          src={
-                            order.image_url ||
-                            (isPending
-                              ? "/images/assets/dish-tagine.jpg"
-                              : "/images/assets/dish-koshary.jpg")
-                          }
-                          alt={order.customer_name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-
-                      {/* Customer Details & Items */}
-                      <div className="flex-1 space-y-1.5 text-right">
-                        {/* Customer Name & Phone */}
-                        <div className="flex items-center justify-between text-xs font-black text-[#3a2818]">
-                          <div className="flex items-center gap-1 text-[#8c2b18]">
-                            <Phone className="w-3.5 h-3.5" />
-                            <span dir="ltr">{order.customer_phone}</span>
-                          </div>
-                          <span>العميل: {order.customer_name}</span>
-                        </div>
-
-                        {/* Delivery Address */}
-                        <div className="flex items-center justify-end gap-1 text-[11px] font-bold text-stone-600">
-                          <span>{order.delivery_address}</span>
-                          <MapPin className="w-3.5 h-3.5 text-[#e67e22] shrink-0" />
-                        </div>
-
-                        {/* Order Items */}
-                        <div className="pt-1.5 space-y-0.5 text-xs text-stone-700 font-bold">
-                          {order.items?.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-end gap-1">
-                              <span>
-                                {item.quantity} × {item.product_name_at_purchase}
-                              </span>
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#d32f2f]"></span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Customer Notes (if any) */}
-                        {order.order_notes && (
-                          <div className="mt-2 px-3 py-1 rounded-xl bg-[#faf4e8] border border-[#ecd9be] text-[11px] font-bold text-[#5c3a16] flex items-center justify-end gap-1.5">
-                            <span>ملاحظة: {order.order_notes}</span>
-                            <MessageSquare className="w-3.5 h-3.5 text-[#e67e22]" />
-                          </div>
-                        )}
-
-                        {/* Timer Countdown (if preparing) */}
-                        {isPreparing && (
-                          <div className="mt-2 px-3 py-1 rounded-xl bg-blue-50 border border-blue-200 text-xs font-black text-[#0284c7] flex items-center justify-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>متبقي: {order.prep_time_minutes || 18} دقيقة على موعد التسليم</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Card Footer: Price & Action Buttons */}
-                    <div className="flex items-center justify-between pt-4 mt-4 border-t border-[#f2e5d3]">
-                      {/* Price & Payment Method */}
-                      <div className="flex items-center gap-2">
-                        <Wallet className="w-4 h-4 text-[#8c2b18]" />
-                        <span className="text-sm font-black text-[#3a2818]">
-                          {order.total_amount}{" "}
-                          <span className="text-xs font-bold text-[#8c2b18]">ج.م</span>
-                        </span>
-                        <span className="text-[11px] font-bold text-stone-500">
-                          {order.payment_method === "CASH_ON_DELIVERY"
-                            ? "(دفع كاش)"
-                            : "(محفظة حواديت)"}
-                        </span>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
-                        {isPending && (
-                          <>
-                            {/* Reject Button */}
-                            <button
-                              type="button"
-                              onClick={() => openRejectModal(order)}
-                              className="px-3.5 py-1.5 rounded-2xl border-2 border-red-500/60 text-red-600 hover:bg-red-50 text-xs font-black transition-all cursor-pointer flex items-center gap-1"
-                            >
-                              <X className="w-3.5 h-3.5 stroke-[3]" />
-                              <span>رفض</span>
-                            </button>
-
-                            {/* Accept Button */}
-                            <button
-                              type="button"
-                              onClick={() => openAcceptModal(order)}
-                              className="px-4 py-1.5 rounded-2xl bg-emerald-50 border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-                            >
-                              <Check className="w-4 h-4 stroke-[3]" />
-                              <span>قبول الطلب</span>
-                            </button>
-                          </>
-                        )}
-
-                        {isPreparing && (
-                          <button
-                            type="button"
-                            onClick={() => handleMarkReady(order)}
-                            className="px-5 py-2 rounded-2xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-xs font-black shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
-                          >
-                            <PackageCheck className="w-4 h-4" />
-                            <span>جاهز للاستلام والتسليم</span>
-                          </button>
-                        )}
-
-                        {isReady && (
-                          <div className="px-4 py-1.5 rounded-2xl bg-emerald-100 text-emerald-800 text-xs font-black flex items-center gap-1">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>في انتظار كابتن التوصيل</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+              filteredOrders.map((order) => renderOrderCard(order))
             )}
           </div>
-        </div>
+        )}
 
-        {/* =========================================================================
-            Footer Copyright Bar
-           ========================================================================= */}
-        <div className="mt-auto py-3 px-6 bg-[#f6edd9] border-t border-[#e6d6bc] flex items-center justify-between text-xs font-bold text-stone-600">
-          <span>2025 © حواديت | جميع الحقوق محفوظة</span>
-          <span className="text-[#8c2b18] font-black">حواديت .. لكل أكلة حكاية</span>
-        </div>
-      </div>
-
-      {/* =========================================================================
-          Right Sidebar (Fixed in RTL layout on the right)
-         ========================================================================= */}
-      <aside className="w-60 h-screen bg-[#38140c] text-white flex flex-col justify-between shrink-0 shadow-2xl relative select-none">
-        <div>
-          {/* Logo Banner */}
-          <div className="relative w-full h-32 border-b border-amber-900/40 overflow-hidden">
-            <Image
-              src="/images/assets/chef-logo.jpg"
-              alt="Hawadeet Logo"
-              fill
-              className="object-cover"
-            />
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="p-3.5 space-y-1.5 text-xs font-black">
-            {/* 1. الرئيسية */}
-            <button
-              type="button"
-              onClick={() => onNavigate("settings")}
-              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
-            >
-              <Home className="w-4 h-4 text-amber-400" />
-              <span>الرئيسية</span>
-            </button>
-
-            {/* 2. الطلبات (Active) */}
-            <button
-              type="button"
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-[#d32f2f] text-white shadow-lg cursor-pointer text-right"
-            >
-              <div className="flex items-center gap-3">
-                <ClipboardList className="w-4 h-4 text-white" />
-                <span>الطلبات</span>
-              </div>
-              <span className="w-5 h-5 rounded-full bg-white/20 text-white text-[10px] font-black flex items-center justify-center">
-                12
-              </span>
-            </button>
-
-            {/* 3. قائمة الطعام */}
-            <button
-              type="button"
-              onClick={() => onNavigate("menu")}
-              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
-            >
-              <UtensilsCrossed className="w-4 h-4 text-amber-400" />
-              <span>قائمة الطعام</span>
-            </button>
-
-            {/* 4. فيديوهات الريلز */}
-            <button
-              type="button"
-              onClick={() => onNavigate("reels")}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
-            >
-              <div className="flex items-center gap-3">
-                <Film className="w-4 h-4 text-red-400" />
-                <span>فيديوهات الريلز 🎬</span>
-              </div>
-              <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold">
-                جديد
-              </span>
-            </button>
-
-            {/* 5. العملاء */}
-            <button
-              type="button"
-              onClick={() => showToast("شاشة سجل العملاء قيد التطوير")}
-              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
-            >
-              <Users className="w-4 h-4 text-amber-400" />
-              <span>العملاء</span>
-            </button>
-
-            {/* 5. الإعدادات */}
-            <button
-              type="button"
-              onClick={() => onNavigate("settings")}
-              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl text-stone-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer text-right"
-            >
-              <Settings className="w-4 h-4 text-amber-400" />
-              <span>الإعدادات</span>
-            </button>
-
-            {/* 6. تسجيل الخروج */}
-            <button
-              type="button"
-              onClick={onLogout}
-              className="w-full flex items-center justify-start gap-3 px-4 py-3 rounded-2xl text-red-300 hover:bg-red-950/40 transition-all cursor-pointer text-right"
-            >
-              <LogOut className="w-4 h-4 text-red-400" />
-              <span>تسجيل الخروج</span>
-            </button>
-          </nav>
-        </div>
-
-        {/* Decorative Egyptian Silhouette at Bottom */}
-        <div className="relative w-full h-36 border-t border-amber-900/40 opacity-80">
-          <Image
-            src="/images/assets/pharaoh-art.jpg"
-            alt="Egyptian Art"
-            fill
-            className="object-cover"
-          />
-        </div>
-      </aside>
-
-      {/* =========================================================================
-          MODAL 1: نافذة قبول الطلب وتحديد وقت التحضير (Accept Dialog)
-         ========================================================================= */}
-      {isAcceptModalOpen && selectedOrderForAccept && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-[#fefcf7] border-2 border-[#e3d0b1] rounded-3xl w-full max-w-md p-6 shadow-2xl relative text-right">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#e8d7be]">
-              <button
-                type="button"
-                onClick={() => setIsAcceptModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black text-[#3a2818]">
-                  قبول الطلب #{selectedOrderForAccept.order_code}
-                </h3>
-                <span className="p-1.5 bg-emerald-100 text-emerald-700 rounded-xl">
-                  <ChefHat className="w-5 h-5" />
+        {/* =====================================================================
+            VIEW 2: KANBAN BOARD (Columns Pipeline)
+           ===================================================================== */}
+        {viewMode === "kanban" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+            {/* Column 1: PENDING */}
+            <div className="space-y-3">
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Hourglass className="w-4 h-4 text-amber-400" />
+                  <span className="font-bold text-xs text-amber-300">قيد الانتظار (جديد)</span>
+                </div>
+                <span className="bg-amber-500 text-souqna-base font-black text-xs px-2 py-0.5 rounded-full font-mono">
+                  {orders.filter((o) => o.status === "PENDING").length}
                 </span>
+              </div>
+
+              <div className="space-y-3">
+                {orders
+                  .filter((o) => o.status === "PENDING")
+                  .map((order) => renderOrderCard(order, true))}
+                {orders.filter((o) => o.status === "PENDING").length === 0 && (
+                  <div className="p-8 text-center text-xs text-souqna-text-muted card-glass border-dashed">
+                    لا توجد طلبات جديدة
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Body */}
-            <div className="my-5 space-y-4">
-              <div className="bg-amber-500/10 border border-amber-300/40 p-3.5 rounded-2xl text-xs font-bold text-[#5c3a16] leading-relaxed">
-                <span>العميل: </span>
-                <span className="text-[#962626] font-black">
-                  {selectedOrderForAccept.customer_name} ({selectedOrderForAccept.customer_phone})
+            {/* Column 2: PREPARING */}
+            <div className="space-y-3">
+              <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ChefHat className="w-4 h-4 text-blue-400" />
+                  <span className="font-bold text-xs text-blue-300">جاري التجهيز بالمطبخ</span>
+                </div>
+                <span className="bg-blue-500 text-white font-black text-xs px-2 py-0.5 rounded-full font-mono">
+                  {orders.filter((o) => o.status === "PREPARING").length}
                 </span>
-                <br />
-                <span>العنوان: {selectedOrderForAccept.delivery_address}</span>
-                <br />
-                <span>الإجمالي: {selectedOrderForAccept.total_amount} ج.م</span>
+              </div>
+
+              <div className="space-y-3">
+                {orders
+                  .filter((o) => o.status === "PREPARING")
+                  .map((order) => renderOrderCard(order, true))}
+                {orders.filter((o) => o.status === "PREPARING").length === 0 && (
+                  <div className="p-8 text-center text-xs text-souqna-text-muted card-glass border-dashed">
+                    المطبخ هادئ حالياً
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Column 3: READY */}
+            <div className="space-y-3">
+              <div className="p-3 rounded-2xl bg-souqna-emerald/10 border border-souqna-emerald/30 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <PackageCheck className="w-4 h-4 text-souqna-emerald" />
+                  <span className="font-bold text-xs text-souqna-emerald">جاهز للتسليم للطيار</span>
+                </div>
+                <span className="bg-souqna-emerald text-souqna-base font-black text-xs px-2 py-0.5 rounded-full font-mono">
+                  {orders.filter((o) => o.status === "READY").length}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {orders
+                  .filter((o) => o.status === "READY")
+                  .map((order) => renderOrderCard(order, true))}
+                {orders.filter((o) => o.status === "READY").length === 0 && (
+                  <div className="p-8 text-center text-xs text-souqna-text-muted card-glass border-dashed">
+                    لا توجد طلبات بانتظار الطيار
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Column 4: DELIVERED / CANCELLED */}
+            <div className="space-y-3">
+              <div className="p-3 rounded-2xl bg-souqna-surface border border-souqna-border flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-souqna-text-muted" />
+                  <span className="font-bold text-xs text-souqna-text-muted">مكتمل أو ملغي</span>
+                </div>
+                <span className="bg-souqna-border text-souqna-text-muted font-bold text-xs px-2 py-0.5 rounded-full font-mono">
+                  {orders.filter((o) => o.status === "DELIVERED" || o.status === "CANCELLED" || o.status === "REJECTED").length}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {orders
+                  .filter((o) => o.status === "DELIVERED" || o.status === "CANCELLED" || o.status === "REJECTED")
+                  .map((order) => renderOrderCard(order, true))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* =========================================================================
+          MODAL 1: قبول الطلب
+         ========================================================================= */}
+      {isAcceptModalOpen && selectedOrderForAccept && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="card-glass border border-souqna-gold/25 w-full max-w-md p-6 shadow-2xl" dir="rtl">
+            <div className="flex items-center justify-between pb-4 border-b border-souqna-border mb-5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-souqna-emerald/15 flex items-center justify-center">
+                  <ChefHat className="w-4 h-4 text-souqna-emerald" />
+                </div>
+                <h3 className="font-black text-souqna-text-primary">
+                  قبول الطلب #{selectedOrderForAccept.order_code}
+                </h3>
+              </div>
+              <button onClick={() => setIsAcceptModalOpen(false)} className="btn-ghost p-1.5 rounded-xl">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-souqna-base/60 border border-souqna-border rounded-xl p-4 text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-souqna-gold font-bold">{selectedOrderForAccept.customer_name}</span>
+                  <span className="text-souqna-text-muted">العميل</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-souqna-text-secondary font-mono" dir="ltr">{selectedOrderForAccept.customer_phone}</span>
+                  <span className="text-souqna-text-muted">الموبايل</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-souqna-text-secondary">{selectedOrderForAccept.delivery_address}</span>
+                  <span className="text-souqna-text-muted">العنوان</span>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-souqna-border">
+                  <span className="text-souqna-gold font-black font-mono">{selectedOrderForAccept.total_amount} ج.م</span>
+                  <span className="text-souqna-text-muted">الإجمالي</span>
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-black text-[#3a2818] mb-2">
+                <label className="text-souqna-text-secondary text-xs font-bold mb-2 block">
                   وقت التحضير المتوقع (بالدقائق):
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   {[20, 30, 45, 60, 90].map((min) => (
                     <button
                       key={min}
                       type="button"
                       onClick={() => setPrepTimeInput(min)}
-                      className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all ${
+                      className={`py-2 text-xs font-bold rounded-xl border transition-all ${
                         prepTimeInput === min
-                          ? "bg-[#d32f2f] text-white border-[#b71c1c] shadow"
-                          : "bg-white text-[#5c3a16] border-[#e0cca9] hover:bg-amber-50"
+                          ? "bg-souqna-gold text-souqna-base border-souqna-gold font-black"
+                          : "border-souqna-border text-souqna-text-secondary hover:border-souqna-gold/40 bg-souqna-surface"
                       }`}
                     >
-                      {min} دقيقة
+                      {min} د
                     </button>
                   ))}
                 </div>
               </div>
+
+              {autoPrintEnabled && (
+                <div className="p-2.5 rounded-xl bg-souqna-emerald/10 border border-souqna-emerald/30 text-souqna-emerald text-xs font-bold flex items-center gap-2">
+                  <Printer className="w-4 h-4 shrink-0" />
+                  <span>سيتم فتح أمر طباعة بون المطبخ تلقائياً بمجرد التأكيد 🖨️</span>
+                </div>
+              )}
             </div>
 
-            {/* Footer Buttons */}
-            <div className="flex items-center gap-3 pt-3 border-t border-[#e8d7be]">
+            <div className="flex gap-3 mt-6">
               <button
                 type="button"
                 onClick={() => setIsAcceptModalOpen(false)}
-                className="flex-1 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-[#5c3a16] text-xs font-bold transition-colors cursor-pointer"
+                className="flex-1 py-2.5 btn-ghost rounded-xl text-xs font-bold"
               >
                 إلغاء
               </button>
@@ -1092,10 +1114,10 @@ export default function MerchantOrdersView({
                 type="button"
                 disabled={loadingAction}
                 onClick={handleConfirmAccept}
-                className="flex-2 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 btn-gold py-2.5 text-xs flex items-center justify-center gap-1.5"
               >
-                <Check className="w-4 h-4 stroke-[3]" />
-                <span>{loadingAction ? "جاري القبول..." : "تأكيد وبدء التحضير 👨‍🍳"}</span>
+                {loadingAction ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                تأكيد القبول 👨‍🍳
               </button>
             </div>
           </div>
@@ -1103,70 +1125,64 @@ export default function MerchantOrdersView({
       )}
 
       {/* =========================================================================
-          MODAL 2: نافذة رفض الطلب مع إدخال السبب (Reject Dialog)
+          MODAL 2: رفض الطلب
          ========================================================================= */}
       {isRejectModalOpen && selectedOrderForReject && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-[#fefcf7] border-2 border-[#e3d0b1] rounded-3xl w-full max-w-md p-6 shadow-2xl relative text-right">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#e8d7be]">
-              <button
-                type="button"
-                onClick={() => setIsRejectModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="card-glass border border-red-500/20 w-full max-w-md p-6 shadow-2xl" dir="rtl">
+            <div className="flex items-center justify-between pb-4 border-b border-souqna-border mb-5">
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black text-[#b71c1c]">
+                <div className="w-8 h-8 rounded-xl bg-red-500/15 flex items-center justify-center">
+                  <AlertCircle className="w-4 h-4 text-red-400" />
+                </div>
+                <h3 className="font-black text-red-400">
                   رفض الطلب #{selectedOrderForReject.order_code}
                 </h3>
-                <span className="p-1.5 bg-red-100 text-red-700 rounded-xl">
-                  <AlertCircle className="w-5 h-5" />
-                </span>
               </div>
+              <button onClick={() => setIsRejectModalOpen(false)} className="btn-ghost p-1.5 rounded-xl">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Body */}
-            <div className="my-5 space-y-4">
-              <p className="text-xs font-bold text-stone-600">
-                يرجى كتابة سبب واضح للرفض حتى يتم إشعار العميل به بأدب واحترافية:
+            <div className="space-y-4">
+              <p className="text-souqna-text-secondary text-xs">
+                اختر سبب الرفض أو اكتب سبب مخصص:
               </p>
-
-              {/* أزرار سريعة للأسباب الشائعة */}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  "المطبخ مشغول جداً حالياً ولا نستقبل طلبات جديدة",
-                  "نفاد بعض المكونات الأساسية للطبق",
-                  "وقت إغلاق المحل قد حان",
-                  "عنوان التوصيل خارج نطاق التغطية",
+                  "المطبخ مشغول جداً حالياً",
+                  "نفاد بعض مكونات الطبق",
+                  "وقت إغلاق المحل",
+                  "العنوان خارج نطاق التغطية",
                 ].map((reason, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setRejectionReasonInput(reason)}
-                    className="text-[11px] font-bold bg-amber-50 hover:bg-amber-100 border border-[#e0cca9] text-[#5c3a16] px-2.5 py-1 rounded-xl transition-all cursor-pointer"
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all ${
+                      rejectionReasonInput === reason
+                        ? "bg-red-500/20 border-red-500/50 text-red-300"
+                        : "border-souqna-border text-souqna-text-muted hover:border-red-500/30 bg-souqna-surface"
+                    }`}
                   >
-                    + {reason}
+                    {reason}
                   </button>
                 ))}
               </div>
-
               <textarea
                 value={rejectionReasonInput}
                 onChange={(e) => setRejectionReasonInput(e.target.value)}
-                placeholder="اكتب سبب الرفض هنا بالتفصيل (5 أحرف على الأقل)..."
+                placeholder="أو اكتب سبب الرفض بالتفصيل (5 أحرف على الأقل)..."
                 rows={3}
-                className="w-full bg-[#fdf9f0] border-2 border-[#e0cca9] rounded-2xl p-3 text-xs font-bold text-[#3a2818] outline-none focus:border-[#d32f2f] focus:ring-2 focus:ring-[#d32f2f]/20 transition-all text-right resize-none"
+                className="input-dark w-full resize-none text-xs"
               />
             </div>
 
-            {/* Footer Buttons */}
-            <div className="flex items-center gap-3 pt-3 border-t border-[#e8d7be]">
+            <div className="flex gap-3 mt-6">
               <button
                 type="button"
                 onClick={() => setIsRejectModalOpen(false)}
-                className="flex-1 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-[#5c3a16] text-xs font-bold transition-colors cursor-pointer"
+                className="flex-1 py-2.5 btn-ghost rounded-xl text-xs font-bold"
               >
                 تراجع
               </button>
@@ -1174,10 +1190,130 @@ export default function MerchantOrdersView({
                 type="button"
                 disabled={loadingAction || rejectionReasonInput.trim().length < 5}
                 onClick={handleConfirmReject}
-                className="flex-2 py-2.5 rounded-2xl bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-black shadow-md transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all"
               >
-                <X className="w-4 h-4 stroke-[3]" />
-                <span>{loadingAction ? "جاري الرفض..." : "تأكيد رفض الطلب ❌"}</span>
+                {loadingAction ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                تأكيد الرفض
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 3: تفاصيل الطلب الكاملة
+         ========================================================================= */}
+      {isDetailModalOpen && selectedOrderForDetail && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="card-glass border border-souqna-gold/25 w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+            <div className="flex items-center justify-between pb-4 border-b border-souqna-border mb-4">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-base font-black text-souqna-gold">
+                  #{selectedOrderForDetail.order_code}
+                </span>
+                <span className="text-souqna-text-muted text-xs">تفاصيل الطلب الكاملة</span>
+              </div>
+              <button onClick={() => setIsDetailModalOpen(false)} className="btn-ghost p-1.5 rounded-xl">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              {/* Customer Info Card */}
+              <div className="bg-souqna-base/60 border border-souqna-border p-4 rounded-xl space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-souqna-text-primary text-sm">
+                    {selectedOrderForDetail.customer_name}
+                  </span>
+                  <a
+                    href={`tel:${selectedOrderForDetail.customer_phone}`}
+                    className="btn-gold px-3 py-1 text-xs flex items-center gap-1"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>اتصال بالعميل</span>
+                  </a>
+                </div>
+                <div className="text-souqna-text-secondary flex items-start gap-1.5 pt-1">
+                  <MapPin className="w-4 h-4 text-souqna-gold shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <span>{selectedOrderForDetail.delivery_address}</span>
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(selectedOrderForDetail.delivery_address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-souqna-gold hover:underline text-[11px] mt-0.5"
+                    >
+                      فتح العنوان في خرائط جوجل ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Breakdown */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-souqna-text-primary">أصناف الطلب:</h4>
+                <div className="space-y-2">
+                  {selectedOrderForDetail.items?.map((item, idx) => (
+                    <div key={idx} className="p-3 bg-souqna-surface border border-souqna-border rounded-xl">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-souqna-text-primary">
+                          {item.quantity} × {item.product_name_at_purchase}
+                        </span>
+                        <span className="font-mono text-souqna-gold font-bold">
+                          {item.total_price} ج.م
+                        </span>
+                      </div>
+                      {item.item_notes && (
+                        <p className="text-[11px] text-amber-300 mt-1">
+                          ⚠️ ملاحظة خاصة: {item.item_notes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Special Order Notes */}
+              {selectedOrderForDetail.order_notes && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300">
+                  <span className="font-bold block mb-0.5">ملاحظات العميل:</span>
+                  <p>{selectedOrderForDetail.order_notes}</p>
+                </div>
+              )}
+
+              {/* Price summary */}
+              <div className="p-3 bg-souqna-base/80 border border-souqna-border rounded-xl flex items-center justify-between">
+                <div>
+                  <span className="text-souqna-text-muted block text-[11px]">طريقة الدفع</span>
+                  <span className="font-bold text-souqna-text-primary">
+                    {selectedOrderForDetail.payment_method === "CASH_ON_DELIVERY" ? "💵 كاش عند الاستلام" : "💳 محفظة إلكترونية"}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-souqna-text-muted block text-[11px]">الإجمالي المطلوب</span>
+                  <span className="font-mono text-lg font-black text-souqna-gold">
+                    {selectedOrderForDetail.total_amount} ج.م
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-4 mt-4 border-t border-souqna-border">
+              <button
+                type="button"
+                onClick={() => handlePrintReceipt(selectedOrderForDetail)}
+                className="flex-1 btn-gold py-2.5 text-xs flex items-center justify-center gap-1.5"
+              >
+                <Printer className="w-4 h-4" />
+                <span>طباعة بون المطبخ (80mm)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDetailModalOpen(false)}
+                className="py-2.5 px-4 btn-ghost rounded-xl text-xs font-bold"
+              >
+                إغلاق
               </button>
             </div>
           </div>

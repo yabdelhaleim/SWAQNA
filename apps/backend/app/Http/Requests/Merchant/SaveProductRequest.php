@@ -17,7 +17,9 @@ class SaveProductRequest extends FormRequest
             'name' => ['required', 'string', 'min:2', 'max:200'],
             'description' => ['nullable', 'string', 'max:1000'],
             'base_price' => ['required', 'numeric', 'min:0'],
-            'category_id' => ['nullable', 'string', 'exists:categories,id'],
+            'category_id' => ['nullable', 'string'],
+            'category_name' => ['nullable', 'string', 'max:100'],
+            'category' => ['nullable', 'string', 'max:100'],
             'image_url' => ['nullable', 'string'],
             'prep_time_minutes' => ['nullable', 'integer', 'min:5', 'max:1440'],
             'servings_count' => ['nullable', 'string', 'max:50'],
@@ -27,7 +29,7 @@ class SaveProductRequest extends FormRequest
             'variants.*.name' => ['required_with:variants', 'string', 'max:100'],
             'variants.*.price' => ['required_with:variants', 'numeric', 'min:0'],
             'modifier_group_ids' => ['nullable', 'array'],
-            'modifier_group_ids.*' => ['string', 'exists:modifier_groups,id'],
+            'modifier_group_ids.*' => ['string'],
         ];
     }
 

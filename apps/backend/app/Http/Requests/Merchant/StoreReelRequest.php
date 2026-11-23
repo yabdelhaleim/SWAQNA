@@ -16,7 +16,8 @@ class StoreReelRequest extends FormRequest
         return [
             'title'            => ['required', 'string', 'min:3', 'max:150'],
             'caption'          => ['nullable', 'string', 'max:1000'],
-            'product_id'       => ['nullable', 'uuid', 'exists:products,id'],
+            'product_id'       => ['nullable', 'string'],
+            'price'            => ['nullable', 'numeric'],
             'video'            => ['required_without:video_url', 'nullable', 'file', 'mimes:mp4,mov,webm', 'max:51200'],
             'video_url'        => ['required_without:video', 'nullable', 'string', 'url'],
             'thumbnail'        => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],

@@ -40,7 +40,7 @@ class User extends Authenticatable
 
     public function addresses(): HasMany
     {
-        return $this->hasMany(UserAddress::class);
+        return $this->hasMany(CustomerAddress::class, 'user_id');
     }
 
     public function merchant(): HasOne

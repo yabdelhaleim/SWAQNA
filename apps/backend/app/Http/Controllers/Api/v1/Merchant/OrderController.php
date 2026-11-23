@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api\v1\Merchant;
 
 use App\Enums\ActorType;
 use App\Enums\OrderStatus;
+use App\Events\OrderPlaced;
+use App\Events\OrderStatusUpdated;
+use App\Notifications\OrderStatusNotification;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Merchant\AcceptOrderRequest;
 use App\Http\Requests\Merchant\RejectOrderRequest;
@@ -102,6 +105,10 @@ class OrderController extends Controller
             'reason'          => 'تم قبول الطلب من قِبل التاجر',
         ]);
 
+        // 🚀 بث تحديث حالة الطلب للعميل والمطعم في الوقت الفعلي
+        event(new OrderStatusUpdated($order, 'تم قبول الطلب وجاري التحضير'));
+        $order->customer?->notify(new OrderStatusNotification($order, 'PREPARING'));
+
         return response()->json([
             'success' => true,
             'message' => 'تم قبول الطلب بنجاح',
@@ -141,6 +148,10 @@ class OrderController extends Controller
             'reason'          => 'تم رفض الطلب: ' . $request->rejection_reason,
         ]);
 
+        // 🚀 بث رفض الطلب للعميل فورا
+        event(new OrderStatusUpdated($order, 'تم رفض الطلب: ' . $request->rejection_reason));
+        $order->customer?->notify(new OrderStatusNotification($order, 'REJECTED', $request->rejection_reason));
+
         return response()->json([
             'success' => true,
             'message' => 'تم رفض الطلب',
@@ -179,9 +190,48 @@ class OrderController extends Controller
             'reason'          => 'الطلب جاهز للتسليم',
         ]);
 
+        // 🚀 بث جهوزية الطلب للعميل والمندوب فورا
+        event(new OrderStatusUpdated($order, 'الطلب جاهز للتسليم'));
+        $order->customer?->notify(new OrderStatusNotification($order, 'READY'));
+
         return response()->json([
             'success' => true,
             'message' => 'الطلب جاهز للتسليم',
+            'order'   => $order->fresh(['items.product', 'items.variant', 'items.modifiers']),
+        ]);
+    }
+
+    /**
+     * Mark an order as DELIVERED.
+     */
+    public function markDelivered(Request $request, string $id): JsonResponse
+    {
+        $merchant = $request->user()->merchant;
+
+        $order = Order::with(['items.product', 'items.variant', 'items.modifiers'])
+            ->where('merchant_id', $merchant->id)
+            ->findOrFail($id);
+
+        $order->update([
+            'status'       => OrderStatus::DELIVERED,
+            'delivered_at' => now(),
+            'is_paid'      => true,
+        ]);
+
+        $order->statusHistory()->create([
+            'previous_status' => OrderStatus::READY,
+            'new_status'      => OrderStatus::DELIVERED,
+            'actor_id'        => $request->user()->id,
+            'actor_type'      => ActorType::MERCHANT,
+            'reason'          => 'تم تسليم الطلب للعميل بنجاح',
+        ]);
+
+        event(new OrderStatusUpdated($order, 'تم تسليم الطلب للعميل'));
+        $order->customer?->notify(new OrderStatusNotification($order, 'DELIVERED'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تسليم الطلب بنجاح 🎉',
             'order'   => $order->fresh(['items.product', 'items.variant', 'items.modifiers']),
         ]);
     }
@@ -225,9 +275,8 @@ class OrderController extends Controller
 
         $merchant = $request->user()->merchant;
 
-        // Pick a random product from this merchant's categories
-        $product = Product::whereHas('category', fn ($q) => $q->where('merchant_id', $merchant->id))
-            ->first();
+        // Pick a product from this merchant directly
+        $product = Product::where('merchant_id', $merchant->id)->first();
 
         $order = Order::create([
             'id'                => Str::uuid(),
@@ -265,6 +314,9 @@ class OrderController extends Controller
             'actor_type'      => ActorType::SYSTEM,
             'reason'          => 'طلب تجريبي تم إنشاؤه تلقائياً',
         ]);
+
+        // 🚀 بث الحدث التجريبي أيضا
+        event(new OrderPlaced($order));
 
         return response()->json([
             'success' => true,
