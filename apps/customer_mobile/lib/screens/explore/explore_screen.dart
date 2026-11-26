@@ -60,11 +60,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Future<void> _loadExploreData() async {
     setState(() => _isLoading = true);
     try {
-      final res = await ApiService.getExploreData(
+      final data = await ApiService.getExploreData(
         category: _selectedCategory == 'الكل' ? null : _selectedCategory,
         sort: _selectedSort == 'default' ? null : _selectedSort,
       );
-      final data = res['data'] ?? {};
       if (mounted) {
         setState(() {
           _categories = data['categories'] ?? [];
@@ -90,8 +89,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     setState(() => _isSearching = true);
     try {
-      final res = await ApiService.search(q);
-      final data = res['data'] ?? {};
+      final data = await ApiService.search(q);
       if (mounted) {
         setState(() {
           _searchResults = data['products'] ?? [];

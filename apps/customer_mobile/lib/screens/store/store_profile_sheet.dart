@@ -33,11 +33,11 @@ class _StoreProfileSheetState extends State<StoreProfileSheet> {
   Future<void> _loadStore() async {
     setState(() => _isLoading = true);
     try {
-      final res = await ApiService.getMerchantDetails(widget.vendorId);
+      final data = await ApiService.getMerchantDetails(widget.vendorId);
       if (mounted) {
         setState(() {
-          _storeData = res['data'];
-          _products = res['data']?['products'] ?? [];
+          _storeData = data.isNotEmpty ? data : null;
+          _products = data['products'] ?? [];
           _isLoading = false;
         });
       }

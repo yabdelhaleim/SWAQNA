@@ -40,25 +40,27 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   Color _statusColor(String status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'pending': return Colors.orange;
       case 'confirmed': return Colors.blue;
       case 'preparing': return Colors.purple;
       case 'ready': return Colors.teal;
       case 'delivered': return Colors.green;
-      case 'cancelled': return Colors.red;
+      case 'cancelled':
+      case 'rejected': return Colors.red;
       default: return AppTheme.textGrey;
     }
   }
 
   String _statusAr(String status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'pending': return 'بينتظر التأكيد';
       case 'confirmed': return 'اتأكد ✅';
       case 'preparing': return 'بيتجهز 👨‍🍳';
       case 'ready': return 'جاهز للتسليم 📦';
       case 'delivered': return 'وصل! 🎉';
       case 'cancelled': return 'اتلغى ❌';
+      case 'rejected': return 'مرفوض ❌';
       default: return status;
     }
   }
