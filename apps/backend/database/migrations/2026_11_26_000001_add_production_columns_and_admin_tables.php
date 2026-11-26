@@ -39,7 +39,6 @@ return new class extends Migration
             Schema::table('orders', function (Blueprint $table) {
                 $table->foreignUuid('captain_id')
                     ->nullable()
-                    ->after('delivery_captain_id')
                     ->constrained('delivery_captains')
                     ->nullOnDelete();
             });
