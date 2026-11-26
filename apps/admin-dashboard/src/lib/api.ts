@@ -31,10 +31,10 @@ async function request<T = any>(
   }));
 
   if (!res.ok && data.success === undefined) {
-    return { success: false, message: data.message || "خطأ في الخادم" } as T;
+    return { success: false, status: res.status, message: data.message || "خطأ في الخادم" } as T;
   }
 
-  return data;
+  return res.status === 401 ? { ...data, success: false, status: 401 } : data;
 }
 
 export const adminApi = {

@@ -63,6 +63,15 @@ export default function AdminPage() {
         adminApi.getCoupons(authToken),
       ]);
 
+      if ([mRes, oRes, cRes, wRes, rRes, cpRes].some((r: any) => r?.status === 401)) {
+        setUser(null);
+        setToken("");
+        localStorage.removeItem("souqna_admin_user");
+        localStorage.removeItem("souqna_admin_token");
+        showToast("انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً");
+        return;
+      }
+
       if (mRes?.success) setMerchants(mRes.merchants || []);
       if (oRes?.success) setOrders(oRes.orders || []);
       if (cRes?.success) setCaptains(cRes.captains || []);
@@ -294,7 +303,7 @@ export default function AdminPage() {
         {
           id: res.coupon.id,
           code: res.coupon.code,
-          discount_percentage: res.coupon.discount_value ?? newCoupon.discount_percentage,
+          discount_percentage: res.coupon.value ?? res.coupon.discount_value ?? newCoupon.discount_percentage,
           max_discount_amount: res.coupon.max_discount_amount ?? 0,
           min_order_amount: res.coupon.min_order_amount ?? 0,
           usage_count: 0,

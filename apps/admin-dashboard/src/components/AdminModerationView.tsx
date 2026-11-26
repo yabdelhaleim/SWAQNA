@@ -112,7 +112,17 @@ export const AdminModerationView: React.FC<AdminModerationViewProps> = ({
             >
               {/* Thumbnail / Video Box */}
               <div className="relative aspect-[9/12] rounded-2xl overflow-hidden bg-souqna-card border border-souqna-border group">
-                <img src={reel.thumbnail_url} alt={reel.product_name} className="w-full h-full object-cover" />
+                {reel.thumbnail_url ? (
+                  <img src={reel.thumbnail_url} alt={reel.product_name} className="w-full h-full object-cover" />
+                ) : (
+                  <video
+                    src={reel.video_url}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
 
                 <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-souqna-base/80 backdrop-blur-md text-[11px] font-bold text-white border border-white/10">
