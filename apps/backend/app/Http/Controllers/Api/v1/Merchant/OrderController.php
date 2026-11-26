@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\v1\Merchant;
 
 use App\Enums\ActorType;
 use App\Enums\OrderStatus;
+use App\Enums\WalletType;
 use App\Events\OrderPlaced;
 use App\Events\OrderStatusUpdated;
 use App\Notifications\OrderStatusNotification;
@@ -15,8 +16,10 @@ use App\Models\OrderItem;
 use App\Models\OrderItemModifier;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Wallet;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class OrderController extends Controller
@@ -212,26 +215,52 @@ class OrderController extends Controller
             ->where('merchant_id', $merchant->id)
             ->findOrFail($id);
 
-        $order->update([
-            'status'       => OrderStatus::DELIVERED,
-            'delivered_at' => now(),
-            'is_paid'      => true,
-        ]);
+        if ($order->status === OrderStatus::DELIVERED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تم تأكيد تسليم هذا الطلب مسبقاً',
+            ], 422);
+        }
 
-        $order->statusHistory()->create([
-            'previous_status' => OrderStatus::READY,
-            'new_status'      => OrderStatus::DELIVERED,
-            'actor_id'        => $request->user()->id,
-            'actor_type'      => ActorType::MERCHANT,
-            'reason'          => 'تم تسليم الطلب للعميل بنجاح',
-        ]);
+        if ($request->filled('delivery_pin') && $order->delivery_pin && $order->delivery_pin !== $request->input('delivery_pin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'رمز التسليم (Delivery PIN) غير صحيح',
+            ], 422);
+        }
 
-        event(new OrderStatusUpdated($order, 'تم تسليم الطلب للعميل'));
+        DB::transaction(function () use ($order, $merchant, $request) {
+            $prevStatus = $order->status instanceof OrderStatus ? $order->status->value : (string) $order->status;
+
+            $order->update([
+                'status'       => OrderStatus::DELIVERED,
+                'delivered_at' => now(),
+                'is_paid'      => true,
+            ]);
+
+            $order->statusHistory()->create([
+                'previous_status' => $prevStatus,
+                'new_status'      => OrderStatus::DELIVERED->value,
+                'actor_id'        => $request->user()->id,
+                'actor_type'      => ActorType::MERCHANT,
+                'reason'          => 'تم تسليم الطلب للعميل بنجاح',
+            ]);
+
+            $rate = (float) ($merchant->commission_rate ?? 10);
+            $net = round(((float) $order->total_amount) * (1 - $rate / 100), 2);
+            $wallet = Wallet::firstOrCreate(
+                ['merchant_id' => $merchant->id, 'wallet_type' => WalletType::MERCHANT],
+                ['balance' => 0, 'locked_amount' => 0, 'currency' => 'EGP']
+            );
+            $wallet->increment('balance', $net);
+        });
+
+        event(new OrderStatusUpdated($order->fresh(), 'تم تسليم الطلب للعميل'));
         $order->customer?->notify(new OrderStatusNotification($order, 'DELIVERED'));
 
         return response()->json([
             'success' => true,
-            'message' => 'تم تسليم الطلب بنجاح 🎉',
+            'message' => 'تم تسليم الطلب وإضافة الأرباح لمحفظتك بنجاح 🎉',
             'order'   => $order->fresh(['items.product', 'items.variant', 'items.modifiers']),
         ]);
     }
