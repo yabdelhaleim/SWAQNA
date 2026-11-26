@@ -216,7 +216,6 @@ export default function MerchantOrdersView({
             setStats((prev) => ({
               ...prev,
               pending: prev.pending + 1,
-              active_total: (prev.active_total || 0) + 1,
             }));
           }
         });
