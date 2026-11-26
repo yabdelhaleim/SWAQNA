@@ -101,7 +101,7 @@ export default function MerchantOrdersView({
   const [loadingAction, setLoadingAction] = useState(false);
 
   // Audio & Tab flash refs
-  const prevPendingCountRef = useRef<number>(3);
+  const prevPendingCountRef = useRef<number>(0);
   const originalTitleRef = useRef<string>("");
 
   // Load sound & auto-print settings from localStorage on mount
@@ -175,7 +175,7 @@ export default function MerchantOrdersView({
         });
       }
 
-      if (ordersRes?.success && ordersRes.data?.data && ordersRes.data.data.length > 0) {
+      if (ordersRes?.success && Array.isArray(ordersRes.data?.data)) {
         setOrders(ordersRes.data.data);
       }
     } catch {
@@ -316,7 +316,11 @@ export default function MerchantOrdersView({
     const orderAccepted = selectedOrderForAccept;
 
     try {
-      await merchantApi.acceptOrder(token, orderAccepted.id, prepTimeInput);
+      const res = await merchantApi.acceptOrder(token, orderAccepted.id, prepTimeInput);
+      if (!res?.success) {
+        showToast(res?.message || "تعذر قبول الطلب من السيرفر", "error");
+        return;
+      }
       setOrders((prev) =>
         prev.map((o) =>
           o.id === orderAccepted.id
@@ -335,15 +339,7 @@ export default function MerchantOrdersView({
         }, 300);
       }
     } catch {
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === orderAccepted.id
-            ? { ...o, status: "PREPARING", prep_time_minutes: prepTimeInput }
-            : o
-        )
-      );
-      setStats((prev) => ({ ...prev, pending: Math.max(0, prev.pending - 1), preparing: prev.preparing + 1 }));
-      showToast(`تم قبول الطلب #${orderAccepted.order_code}! 👨‍🍳`);
+      showToast("تعذر الاتصال بالسيرفر لقبول الطلب", "error");
     } finally {
       setIsAcceptModalOpen(false);
       setSelectedOrderForAccept(null);
@@ -365,7 +361,11 @@ export default function MerchantOrdersView({
     }
     setLoadingAction(true);
     try {
-      await merchantApi.rejectOrder(token, selectedOrderForReject.id, rejectionReasonInput.trim());
+      const res = await merchantApi.rejectOrder(token, selectedOrderForReject.id, rejectionReasonInput.trim());
+      if (!res?.success) {
+        showToast(res?.message || "تعذر رفض الطلب من السيرفر", "error");
+        return;
+      }
       setOrders((prev) =>
         prev.map((o) =>
           o.id === selectedOrderForReject.id
@@ -376,15 +376,7 @@ export default function MerchantOrdersView({
       setStats((prev) => ({ ...prev, pending: Math.max(0, prev.pending - 1) }));
       showToast(`تم رفض الطلب #${selectedOrderForReject.order_code}`);
     } catch {
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === selectedOrderForReject.id
-            ? { ...o, status: "REJECTED", rejection_reason: rejectionReasonInput }
-            : o
-        )
-      );
-      setStats((prev) => ({ ...prev, pending: Math.max(0, prev.pending - 1) }));
-      showToast(`تم رفض الطلب #${selectedOrderForReject.order_code}`);
+      showToast("تعذر الاتصال بالسيرفر لرفض الطلب", "error");
     } finally {
       setIsRejectModalOpen(false);
       setSelectedOrderForReject(null);
@@ -395,14 +387,16 @@ export default function MerchantOrdersView({
   const handleMarkReady = async (order: Order) => {
     setLoadingAction(true);
     try {
-      await merchantApi.markOrderReady(token, order.id);
+      const res = await merchantApi.markOrderReady(token, order.id);
+      if (!res?.success) {
+        showToast(res?.message || "تعذر تحديث حالة الطلب", "error");
+        return;
+      }
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: "READY" } : o)));
       setStats((prev) => ({ ...prev, preparing: Math.max(0, prev.preparing - 1), ready: prev.ready + 1 }));
       showToast(`الطلب #${order.order_code} جاهز! 📦 تم إشعار المندوب`);
     } catch {
-      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: "READY" } : o)));
-      setStats((prev) => ({ ...prev, preparing: Math.max(0, prev.preparing - 1), ready: prev.ready + 1 }));
-      showToast(`الطلب #${order.order_code} جاهز للتسليم! 📦`);
+      showToast("تعذر الاتصال بالسيرفر لتحديث حالة الطلب", "error");
     } finally {
       setLoadingAction(false);
     }

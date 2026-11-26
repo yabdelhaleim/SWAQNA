@@ -65,60 +65,6 @@ export default function MerchantReelsView({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const defaultReels: ReelItem[] = [
-    {
-      id: "reel-1",
-      title: "طريقة وسر طشة الملوخية بالتقلية الفلاحي",
-      caption: "شوفوا الطشة بالسمنة البلدي ريحتها جابت آخر الشارع! 😍 #سوقنا #ملوخية #أكل_بيتي",
-      video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-      duration_seconds: 28,
-      views_count: 14250,
-      likes_count: 3820,
-      is_active: true,
-      product: {
-        id: "p-1",
-        name: "طاجن ملوخية بالطشة البلدي",
-        base_price: 85,
-        image_url: "/images/assets/dish-tagine.jpg",
-        category_name: "طواجن بلدية",
-      },
-    },
-    {
-      id: "reel-2",
-      title: "محشي مشكل فلاحي ني في ني بالسمنة",
-      caption: "حلة المحشي المشكل على أصولها.. ريحة ورق العنب مع الكوسة والبتنجان! 🌶️✨",
-      video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-      duration_seconds: 35,
-      views_count: 18900,
-      likes_count: 5120,
-      is_active: true,
-      product: {
-        id: "p-2",
-        name: "محشي مشكل فلاحي مشطشط",
-        base_price: 180,
-        image_url: "/images/assets/dish-koshary.jpg",
-        category_name: "محاشي",
-      },
-    },
-    {
-      id: "reel-3",
-      title: "طاجن بامية باللحمة الضاني دايبة دوب",
-      caption: "اللحمة بتدوب مع البامية ولمونتين معصورين.. سر التتبيلة الصعيدي في سوقنا! 🍲❤️",
-      video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-      duration_seconds: 42,
-      views_count: 9800,
-      likes_count: 2450,
-      is_active: true,
-      product: {
-        id: "p-3",
-        name: "طاجن بامية باللحمة الضاني",
-        base_price: 220,
-        image_url: "/images/assets/dish-tagine.jpg",
-        category_name: "طواجن بلدية",
-      },
-    },
-  ];
-
   // Fetch reels and menu
   useEffect(() => {
     setLoading(true);
@@ -221,17 +167,18 @@ export default function MerchantReelsView({
   // Toggle Reel Active / Paused
   const handleToggleReelStatus = async (reelId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setReels((prev) =>
-      prev.map((r) => (r.id === reelId ? { ...r, is_active: !r.is_active } : r))
-    );
-
     try {
-      if (!reelId.startsWith("reel-")) {
-        await merchantApi.toggleReelStatus(token, reelId);
+      const res = await merchantApi.toggleReelStatus(token, reelId);
+      if (!res?.success) {
+        showToast(res?.message || "تعذر تحديث حالة الفيديو", "error");
+        return;
       }
+      setReels((prev) =>
+        prev.map((r) => (r.id === reelId ? { ...r, is_active: !r.is_active } : r))
+      );
       showToast("تم تحديث حالة ظهور الريلز للعملاء");
     } catch {
-      showToast("تم تحديث حالة الريلز محلياً");
+      showToast("تعذر الاتصال بالسيرفر لتحديث الحالة", "error");
     }
   };
 
@@ -240,14 +187,16 @@ export default function MerchantReelsView({
     e.stopPropagation();
     if (!confirm("هل أنت متأكد من رغبتك في حذف هذا الفيديو من استوديو الريلز؟")) return;
 
-    setReels((prev) => prev.filter((r) => r.id !== reelId));
     try {
-      if (!reelId.startsWith("reel-")) {
-        await merchantApi.deleteReel(token, reelId);
+      const res = await merchantApi.deleteReel(token, reelId);
+      if (!res?.success) {
+        showToast(res?.message || "تعذر حذف الفيديو من السيرفر", "error");
+        return;
       }
+      setReels((prev) => prev.filter((r) => r.id !== reelId));
       showToast("تم حذف الفيديو بنجاح");
     } catch {
-      showToast("تم حذف الفيديو");
+      showToast("تعذر الاتصال بالسيرفر لحذف الفيديو", "error");
     }
   };
 

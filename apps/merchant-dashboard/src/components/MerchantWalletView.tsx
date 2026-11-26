@@ -44,82 +44,17 @@ interface MerchantWalletViewProps {
   onLogout?: () => void;
 }
 
-const DEFAULT_WALLET: WalletData = {
-  id: "w-primary",
-  balance: 8450.00,
-  locked_amount: 1250.00,
+const EMPTY_WALLET: WalletData = {
+  id: "",
+  balance: 0,
+  locked_amount: 0,
   currency: "ج.م",
-  this_month_sales: 14850.00,
-  this_month_net: 13365.00,
-  platform_commission_amount: 1485.00,
+  this_month_sales: 0,
+  this_month_net: 0,
+  platform_commission_amount: 0,
   platform_commission_rate: 10,
-  total_completed_orders: 24,
+  total_completed_orders: 0,
 };
-
-const DEFAULT_TRANSACTIONS: TransactionItem[] = [
-  {
-    id: "tx-1",
-    type: "ORDER_EARNING",
-    title: "أرباح طلب #ORD-1042 (طاجن بامية + محشي)",
-    amount: 360.00,
-    gross_amount: 400.00,
-    commission_amount: 40.00,
-    status: "COMPLETED",
-    payment_method: "CASH_ON_DELIVERY",
-    created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    reference_id: "ORD-1042",
-  },
-  {
-    id: "tx-2",
-    type: "ORDER_EARNING",
-    title: "أرباح طلب #ORD-1039 (صينية مكرونة بشاميل عائلي)",
-    amount: 252.00,
-    gross_amount: 280.00,
-    commission_amount: 28.00,
-    status: "COMPLETED",
-    payment_method: "ONLINE_CARD",
-    created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    reference_id: "ORD-1039",
-  },
-  {
-    id: "tx-3",
-    type: "WITHDRAWAL",
-    title: "سحب أرباح لحظي عبر إنستاباي (InstaPay)",
-    amount: -2500.00,
-    gross_amount: 2500.00,
-    commission_amount: 0.00,
-    status: "COMPLETED",
-    payout_method: "INSTAPAY",
-    account_details: "fatma_kitchen@instapay",
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-    reference_id: "PAY-89214",
-  },
-  {
-    id: "tx-4",
-    type: "ORDER_EARNING",
-    title: "أرباح طلب #ORD-1031 (عزومة محاشي وممبار)",
-    amount: 585.00,
-    gross_amount: 650.00,
-    commission_amount: 65.00,
-    status: "COMPLETED",
-    payment_method: "ONLINE_CARD",
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    reference_id: "ORD-1031",
-  },
-  {
-    id: "tx-5",
-    type: "WITHDRAWAL",
-    title: "سحب أرباح عبر محفظة فودافون كاش",
-    amount: -1800.00,
-    gross_amount: 1800.00,
-    commission_amount: 0.00,
-    status: "COMPLETED",
-    payout_method: "VODAFONE_CASH",
-    account_details: "01055369603",
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),
-    reference_id: "PAY-74120",
-  },
-];
 
 export default function MerchantWalletView({
   token,
@@ -128,8 +63,8 @@ export default function MerchantWalletView({
   onNavigate,
   onLogout,
 }: MerchantWalletViewProps) {
-  const [wallet, setWallet] = useState<WalletData>(DEFAULT_WALLET);
-  const [transactions, setTransactions] = useState<TransactionItem[]>(DEFAULT_TRANSACTIONS);
+  const [wallet, setWallet] = useState<WalletData>(EMPTY_WALLET);
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [filterType, setFilterType] = useState<"ALL" | "EARNINGS" | "WITHDRAWALS">("ALL");
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -162,11 +97,11 @@ export default function MerchantWalletView({
       if (walletRes && walletRes.success && walletRes.wallet) {
         setWallet(walletRes.wallet);
       }
-      if (txRes && txRes.success && txRes.transactions && txRes.transactions.length > 0) {
+      if (txRes && txRes.success && Array.isArray(txRes.transactions)) {
         setTransactions(txRes.transactions);
       }
     } catch {
-      // الاعتماد على البيانات الافتراضية
+      showToast("تعذر تحميل بيانات المحفظة من السيرفر", "error");
     } finally {
       setLoading(false);
       setRefreshing(false);

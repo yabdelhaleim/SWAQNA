@@ -235,7 +235,7 @@ export default function MerchantMenuView({
         setLoading(true);
         const res = await merchantApi.getMenu(token);
         if (res.success && isMounted) {
-          if (res.products && res.products.length > 0) {
+          if (Array.isArray(res.products)) {
             setDishes(res.products);
           }
           if (res.categories && res.categories.length > 0) {
@@ -431,26 +431,20 @@ export default function MerchantMenuView({
 
       if (editingDishId && !editingDishId.startsWith("dish-")) {
         const res = await merchantApi.updateProduct(token, editingDishId, payload);
-        if (res.success && res.product) {
-          setDishes((prev) =>
-            prev.map((d) => (d.id === editingDishId ? { ...d, ...res.product, category_name: formCategory, image_url: formImageUrl } : d))
-          );
-        } else {
-          setDishes((prev) =>
-            prev.map((d) => (d.id === editingDishId ? { ...d, ...payload } : d))
-          );
+        if (!res?.success || !res.product) {
+          showToast(res?.message || "تعذر تحديث الصنف على السيرفر", "error");
+          return;
         }
+        setDishes((prev) =>
+          prev.map((d) => (d.id === editingDishId ? { ...d, ...res.product, category_name: formCategory, image_url: formImageUrl } : d))
+        );
       } else {
         const res = await merchantApi.createProduct(token, payload);
-        if (res.success && res.product) {
-          setDishes((prev) => [{ ...res.product, category_name: formCategory, image_url: formImageUrl }, ...prev]);
-        } else {
-          const newDish: DishItem = {
-            id: `dish-${Date.now()}`,
-            ...payload,
-          };
-          setDishes((prev) => [newDish, ...prev]);
+        if (!res?.success || !res.product) {
+          showToast(res?.message || "تعذر إضافة الصنف للسيرفر", "error");
+          return;
         }
+        setDishes((prev) => [{ ...res.product, category_name: formCategory, image_url: formImageUrl }, ...prev]);
       }
 
       showToast("تم حفظ الصنف بنجاح في المنيو! 🍲✨");
@@ -465,14 +459,18 @@ export default function MerchantMenuView({
   const handleDeleteDish = async (dishId: string) => {
     if (!confirm("هل أنت متأكد من رغبتك في حذف هذا الصنف نهائياً من المنيو؟")) return;
 
-    setDishes((prev) => prev.filter((d) => d.id !== dishId));
     try {
       if (!dishId.startsWith("dish-")) {
-        await merchantApi.deleteProduct(token, dishId);
+        const res = await merchantApi.deleteProduct(token, dishId);
+        if (!res?.success) {
+          showToast(res?.message || "تعذر حذف الصنف من السيرفر", "error");
+          return;
+        }
       }
+      setDishes((prev) => prev.filter((d) => d.id !== dishId));
       showToast("تم حذف الصنف من القائمة.");
     } catch {
-      showToast("تم حذف الصنف من القائمة.");
+      showToast("تعذر الاتصال بالسيرفر لحذف الصنف.", "error");
     }
   };
 
