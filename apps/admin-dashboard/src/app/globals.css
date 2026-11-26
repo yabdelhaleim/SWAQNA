@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================
+   Souqna Admin Portal — Global Styles
+   Design: Midnight Emerald & Gold (Command Center Grade)
+   ===================================================== */
+
+:root {
+  --souqna-base: #07100F;
+  --souqna-surface: #0D1A18;
+  --souqna-card: #122320;
+  --souqna-border: #1E3532;
+  --souqna-gold: #F59E0B;
+  --souqna-emerald: #10B981;
+  --souqna-text: #F0F5F4;
+  --souqna-muted: #8FA8A5;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  direction: rtl;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  background-color: var(--souqna-base);
+  color: var(--souqna-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--souqna-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: #1E3532;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--souqna-gold);
+}
