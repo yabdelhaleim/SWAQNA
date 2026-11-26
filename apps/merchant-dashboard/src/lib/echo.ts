@@ -21,7 +21,7 @@ export const getEcho = (token?: string): Echo<any> | null => {
   window.Pusher = Pusher;
 
   const authToken = token || (typeof localStorage !== 'undefined' ? localStorage.getItem('merchant_token') || '' : '');
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/api\/v1\/?$/, '');
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/api\/v1(\/merchant)?\/?$/, '');
   const useTls = process.env.NEXT_PUBLIC_REVERB_SCHEME === 'https';
 
   echoInstance = new Echo({

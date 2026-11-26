@@ -3,27 +3,27 @@
 class AppConfig {
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000/api/v1',
+    defaultValue: 'https://api.swaqna.remotelly1.site/api/v1',
   );
 
   static const String mediaBaseUrl = String.fromEnvironment(
     'MEDIA_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000',
+    defaultValue: 'https://api.swaqna.remotelly1.site',
   );
 
   static const String wsHost = String.fromEnvironment(
     'WS_HOST',
-    defaultValue: '10.0.2.2',
+    defaultValue: 'ws.swaqna.remotelly1.site',
   );
 
   static const int wsPort = int.fromEnvironment(
     'WS_PORT',
-    defaultValue: 8080,
+    defaultValue: 443,
   );
 
   static const bool wsUseTls = bool.fromEnvironment(
     'WS_USE_TLS',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   static const String reverbAppKey = String.fromEnvironment(

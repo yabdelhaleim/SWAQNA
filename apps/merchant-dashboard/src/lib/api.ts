@@ -2,7 +2,9 @@
  * API Client لربط لوحة تحكم التاجر بسيرفر Laravel
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1/merchant";
+const RAW_API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1").replace(/\/+$/, "");
+const API_BASE_URL = RAW_API_URL.endsWith("/merchant") ? RAW_API_URL : `${RAW_API_URL}/merchant`;
+export const MEDIA_BASE_URL = RAW_API_URL.replace(/\/api\/v1(\/merchant)?$/, "");
 
 export interface ApiResponse<T = any> {
   success: boolean;

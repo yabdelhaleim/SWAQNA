@@ -125,14 +125,15 @@ export default function MerchantReelsView({
     merchantApi
       .getReels(token)
       .then((res) => {
-        if (res.success && res.data && res.data.length > 0) {
+        if (res.success && Array.isArray(res.data)) {
           setReels(res.data);
         } else {
-          setReels(defaultReels);
+          setReels([]);
         }
       })
       .catch(() => {
-        setReels(defaultReels);
+        setReels([]);
+        showToast("تعذر جلب الفيديوهات من السيرفر", "error");
       })
       .finally(() => setLoading(false));
 
@@ -153,17 +154,13 @@ export default function MerchantReelsView({
               });
             }
           });
-          if (allDishes.length > 0) {
-            setAvailableDishes(allDishes);
-          }
+          setAvailableDishes(allDishes);
+        } else {
+          setAvailableDishes([]);
         }
       })
       .catch(() => {
-        setAvailableDishes([
-          { id: "p-1", name: "طاجن ملوخية بالطشة البلدي", base_price: 85, category_name: "طواجن بلدية" },
-          { id: "p-2", name: "محشي مشكل فلاحي مشطشط", base_price: 180, category_name: "محاشي" },
-          { id: "p-3", name: "طاجن بامية باللحمة الضاني", base_price: 220, category_name: "طواجن بلدية" },
-        ]);
+        setAvailableDishes([]);
       });
   }, [token]);
 

@@ -8,7 +8,7 @@ import {
   Sparkles, Loader2, Upload, Tag, Layers, Flame, DollarSign,
   Image as ImageIcon, ArrowUpDown, ChevronDown
 } from "lucide-react";
-import { merchantApi } from "@/lib/api";
+import { merchantApi, MEDIA_BASE_URL } from "@/lib/api";
 import ReelModal from "@/components/ReelModal";
 
 interface Variant {
@@ -173,7 +173,7 @@ export const formatImageUrl = (url?: string): string => {
     return clean;
   }
   if (clean.startsWith("/storage/")) {
-    return `http://localhost:8000${clean}`;
+    return `${MEDIA_BASE_URL}${clean}`;
   }
   return clean;
 };
@@ -185,7 +185,7 @@ export default function MerchantMenuView({
   onNavigate,
   onLogout,
 }: MerchantMenuViewProps) {
-  const [dishes, setDishes] = useState<DishItem[]>(INITIAL_DISHES);
+  const [dishes, setDishes] = useState<DishItem[]>([]);
   const [categories, setCategories] = useState<string[]>(["الكل", "طواجن", "محاشي", "صواني", "حلويات"]);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -324,7 +324,7 @@ export default function MerchantMenuView({
       if (res.success && uploadedUrl) {
         let finalUrl = uploadedUrl;
         if (finalUrl.startsWith("/")) {
-          finalUrl = `http://localhost:8000${finalUrl}`;
+          finalUrl = `${MEDIA_BASE_URL}${finalUrl}`;
         }
         setFormImageUrl(finalUrl);
         showToast("تم رفع صورة الطبق بنجاح! 📸");

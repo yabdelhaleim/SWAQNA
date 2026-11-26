@@ -42,50 +42,6 @@ class _ReelsFeedScreenState extends State<ReelsFeedScreen> {
     super.dispose();
   }
 
-  // بيانات نموذجية متطابقة مع التصميم (احتياطية في حال انقطاع النت)
-  final List<ReelModel> _demoReels = [
-    ReelModel(
-      id: '1',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      thumbnailUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
-      productId: '101',
-      productTitle: 'طاجن لحمة بالبصل',
-      productDescription: 'أكل بيتي على أصوله .. طعم مختلف بمذاق زمان الأصيل ومتحمر في الفرن البلدي',
-      price: 149,
-      originalPrice: 209,
-      rating: 4.8,
-      category: 'أكل بيتي',
-      vendorId: '1',
-      vendorName: 'مطبخ أم أحمد',
-      vendorAvatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=150&q=80',
-      isVerified: true,
-      likesCount: 97500,
-      commentsCount: 2300,
-      sharesCount: 6800,
-      savesCount: 12400,
-    ),
-    ReelModel(
-      id: '2',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4',
-      thumbnailUrl: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=800&q=80',
-      productId: '102',
-      productTitle: 'فستان صيفي مطرز يدوياً',
-      productDescription: 'خامة قطن مصري 100% تطريز سيناوي يدوي فاخر متاح بجميع المقاسات والألوان',
-      price: 399,
-      originalPrice: 599,
-      rating: 4.8,
-      category: 'أزياء وموضة',
-      vendorId: '2',
-      vendorName: 'أتيليه حواء للموضة',
-      vendorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-      isVerified: true,
-      likesCount: 125000,
-      commentsCount: 842,
-      sharesCount: 1200,
-      savesCount: 8900,
-    ),
-  ];
-
   String _formatCount(int count) {
     if (count >= 1000) {
       return '${(count / 1000).toStringAsFixed(1)}K';
@@ -193,13 +149,75 @@ class _ReelsFeedScreenState extends State<ReelsFeedScreen> {
   @override
   Widget build(BuildContext context) {
     final reelsProvider = Provider.of<ReelsProvider>(context);
-    final reelsList = reelsProvider.reels.isNotEmpty ? reelsProvider.reels : _demoReels;
+    final reelsList = reelsProvider.reels;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. فيد الفيديوهات العمودية
+          // 1. فيد الفيديوهات العمودية الحقيقية من قاعدة البيانات
+          if (reelsProvider.isLoading && reelsList.isEmpty)
+            const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppTheme.primaryYellow),
+                  SizedBox(height: 16),
+                  Text(
+                    'جاري تحميل فيديوهات المطاعم...',
+                    style: TextStyle(color: Colors.white70, fontFamily: 'Cairo', fontSize: 14),
+                  ),
+                ],
+              ),
+            )
+          else if (reelsList.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      reelsProvider.error != null ? Icons.wifi_off_rounded : Icons.video_library_outlined,
+                      size: 64,
+                      color: AppTheme.primaryYellow.withAlpha(200),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      reelsProvider.error ?? 'لا توجد فيديوهات منشورة حالياً',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Cairo',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      reelsProvider.error != null
+                          ? 'تأكد من الاتصال بالإنترنت واضغط تحديث'
+                          : 'ارفع أول فيديو من لوحة التاجر وهيظهر هنا فوراً',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white60, fontFamily: 'Cairo', fontSize: 13),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () => reelsProvider.loadReels(refresh: true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryYellow,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      ),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('تحديث الآن', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
           RefreshIndicator(
             onRefresh: () => reelsProvider.loadReels(refresh: true),
             color: AppTheme.primaryYellow,
@@ -263,12 +281,18 @@ class _ReelsFeedScreenState extends State<ReelsFeedScreen> {
                                 height: 38,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
+                                  color: Colors.white12,
                                   border: Border.all(color: AppTheme.primaryYellow, width: 1.5),
-                                  image: DecorationImage(
-                                    image: NetworkImage(reel.vendorAvatar),
-                                    fit: BoxFit.cover,
-                                  ),
+                                  image: reel.vendorAvatar.isNotEmpty
+                                      ? DecorationImage(
+                                          image: NetworkImage(reel.vendorAvatar),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
                                 ),
+                                child: reel.vendorAvatar.isEmpty
+                                    ? const Icon(Icons.store, color: AppTheme.primaryYellow, size: 20)
+                                    : null,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -352,12 +376,18 @@ class _ReelsFeedScreenState extends State<ReelsFeedScreen> {
                               height: 46,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
+                                color: Colors.white12,
                                 border: Border.all(color: Colors.white, width: 2),
-                                image: DecorationImage(
-                                  image: NetworkImage(reel.vendorAvatar),
-                                  fit: BoxFit.cover,
-                                ),
+                                image: reel.vendorAvatar.isNotEmpty
+                                    ? DecorationImage(
+                                        image: NetworkImage(reel.vendorAvatar),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
+                              child: reel.vendorAvatar.isEmpty
+                                  ? const Icon(Icons.store, color: Colors.white, size: 22)
+                                  : null,
                             ),
                             Positioned(
                               bottom: -6,
@@ -431,7 +461,11 @@ class _ReelsFeedScreenState extends State<ReelsFeedScreen> {
             child: SouqnaHeader(
               selectedCategory: _selectedCategory,
               onCategorySelected: (cat) {
-                setState(() => _selectedCategory = cat);
+                setState(() {
+                  _selectedCategory = cat;
+                  _currentIndex = 0;
+                });
+                reelsProvider.changeCategory(cat);
               },
             ),
           ),

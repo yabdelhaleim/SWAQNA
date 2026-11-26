@@ -166,23 +166,26 @@ export default function ReelModal({
 
       const res = await merchantApi.uploadReel(token, formData);
 
+      if (!res?.success || !res.reel) {
+        const firstFieldErr = res?.errors ? Object.values(res.errors).flat()[0] : null;
+        setError(firstFieldErr || res?.message || "فشل رفع الفيديو للسيرفر. تأكد من الصلاحيات وحجم الفيديو.");
+        return;
+      }
+
       const savedReel = {
-        video_url: res.reel?.video_url || directVideoUrl || videoPreviewUrl,
-        title: title,
-        likes_count: 0,
-        views_count: 0,
+        id: res.reel.id,
+        video_url: res.reel.video_url || directVideoUrl,
+        title: res.reel.title || title,
+        caption: res.reel.caption || caption,
+        duration_seconds: res.reel.duration_seconds || duration,
+        likes_count: res.reel.likes_count || 0,
+        views_count: res.reel.views_count || 0,
       };
 
       onReelSaved(dish.id, savedReel);
       onClose();
-    } catch {
-      onReelSaved(dish.id, {
-        video_url: directVideoUrl || videoPreviewUrl || "https://assets.mixkit.co/videos/preview/mixkit-top-shot-of-a-dish-with-curry-and-rice-42407-large.mp4",
-        title: title,
-        likes_count: 145,
-        views_count: 890,
-      });
-      onClose();
+    } catch (err: any) {
+      setError(err?.message || "تعذر الاتصال بالسيرفر أثناء رفع الفيديو. حاول مرة أخرى.");
     } finally {
       setLoading(false);
     }

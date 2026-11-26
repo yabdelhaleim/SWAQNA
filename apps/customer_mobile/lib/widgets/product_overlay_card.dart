@@ -42,7 +42,11 @@ class ProductOverlayCard extends StatelessWidget {
                   height: 58,
                   color: Colors.grey.shade200,
                   child: reel.thumbnailUrl.isNotEmpty
-                      ? Image.network(reel.thumbnailUrl, fit: BoxFit.cover)
+                      ? Image.network(
+                          reel.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.fastfood, color: Colors.grey),
+                        )
                       : const Icon(Icons.fastfood, color: Colors.grey),
                 ),
               ),
