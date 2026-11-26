@@ -60,8 +60,8 @@ class ModerationController extends Controller
         $coupons = Coupon::orderBy('created_at', 'desc')->get()->map(fn($c) => [
             'id'                  => $c->id,
             'code'                => $c->code,
-            'discount_type'       => $c->discount_type,
-            'discount_value'      => (float) $c->discount_value,
+            'discount_type'       => $c->type,
+            'discount_value'      => (float) $c->value,
             'max_discount_amount' => (float) ($c->max_discount_amount ?? 0),
             'min_order_amount'    => (float) ($c->min_order_amount ?? 0),
             'usage_count'         => (int) $c->used_count,
@@ -90,8 +90,8 @@ class ModerationController extends Controller
 
         $coupon = Coupon::create([
             'code'                => strtoupper(trim($validated['code'])),
-            'discount_type'       => $validated['discount_type'] ?? 'PERCENTAGE',
-            'discount_value'      => $validated['discount_value'],
+            'type'                => $validated['discount_type'] ?? 'PERCENTAGE',
+            'value'               => $validated['discount_value'],
             'max_discount_amount' => $validated['max_discount_amount'] ?? null,
             'min_order_amount'    => $validated['min_order_amount'] ?? 0,
             'max_uses'            => $validated['max_uses'] ?? 1000,
