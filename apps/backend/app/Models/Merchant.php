@@ -38,6 +38,7 @@ class Merchant extends Model
         'delivery_radius_km',
         'avg_rating',
         'total_reviews',
+        'commission_rate',
     ];
 
     protected function casts(): array
@@ -52,7 +53,13 @@ class Merchant extends Model
             'avg_rating' => 'decimal:2',
             'total_reviews' => 'integer',
             'preparation_time_minutes' => 'integer',
+            'commission_rate' => 'decimal:2',
         ];
+    }
+
+    public function getStoreNameAttribute(): string
+    {
+        return $this->name ?? 'متجر سوقنا';
     }
 
     /**

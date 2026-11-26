@@ -24,7 +24,7 @@ interface AdminOrdersViewProps {
   captains: DeliveryCaptain[];
   onUpdateOrderStatus: (orderId: string, newStatus: OrderStatus) => void;
   onAssignCaptain: (orderId: string, captainId: string) => void;
-  onVerifyDeliveryPin: (orderId: string, inputPin: string) => boolean;
+  onVerifyDeliveryPin: (orderId: string, inputPin: string) => Promise<boolean> | boolean;
 }
 
 export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({
@@ -52,10 +52,10 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({
     return matchesSearch && matchesStatus;
   });
 
-  const handleConfirmPin = () => {
+  const handleConfirmPin = async () => {
     if (!pinModalOrder) return;
     setPinError("");
-    const isValid = onVerifyDeliveryPin(pinModalOrder.id, enteredPin.trim());
+    const isValid = await onVerifyDeliveryPin(pinModalOrder.id, enteredPin.trim());
     if (isValid) {
       setPinModalOrder(null);
       setEnteredPin("");

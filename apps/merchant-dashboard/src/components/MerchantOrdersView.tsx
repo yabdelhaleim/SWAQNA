@@ -75,63 +75,13 @@ export default function MerchantOrdersView({
   } | null>(null);
 
   const [stats, setStats] = useState({
-    pending: 3,
-    preparing: 2,
-    ready: 4,
-    today_sales: 1450,
+    pending: 0,
+    preparing: 0,
+    ready: 0,
+    today_sales: 0,
   });
 
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: "ord-1",
-      order_code: "ORD-8291",
-      customer_name: "إبراهيم الدسوقي",
-      customer_phone: "01012345678",
-      delivery_address: "المعادي - شارع 9 - عمارة 14",
-      status: "PENDING",
-      payment_method: "CASH_ON_DELIVERY",
-      total_amount: 260,
-      prep_time_minutes: 45,
-      order_notes: "الأكل بدون شطة، زيادة ليمون ومخلل بلدي",
-      created_at: new Date().toISOString(),
-      items: [
-        { product_name_at_purchase: "طاجن بامية باللحمة الضاني (وسط)", unit_price: 110, quantity: 2, total_price: 220, item_notes: "مسبك زيادة" },
-        { product_name_at_purchase: "ملوخية بيتي بالسمنة البلدي", unit_price: 40, quantity: 1, total_price: 40, item_notes: "طشة إضافية" },
-      ],
-    },
-    {
-      id: "ord-2",
-      order_code: "ORD-7104",
-      customer_name: "محمود الشناوي",
-      customer_phone: "01198765432",
-      delivery_address: "التجمع الخامس - الحي الثاني",
-      status: "PREPARING",
-      payment_method: "WALLET",
-      total_amount: 110,
-      prep_time_minutes: 30,
-      created_at: new Date(Date.now() - 15 * 60000).toISOString(),
-      items: [
-        { product_name_at_purchase: "كشري مصري مخصوص", unit_price: 60, quantity: 1, total_price: 60, item_notes: "صلصة إضافية" },
-        { product_name_at_purchase: "سلطة خضراء بلدي", unit_price: 25, quantity: 2, total_price: 50 },
-      ],
-    },
-    {
-      id: "ord-3",
-      order_code: "ORD-6520",
-      customer_name: "سارة فاروق",
-      customer_phone: "01287654321",
-      delivery_address: "مدينة نصر - عباس العقاد",
-      status: "READY",
-      payment_method: "CASH_ON_DELIVERY",
-      total_amount: 320,
-      prep_time_minutes: 40,
-      created_at: new Date(Date.now() - 40 * 60000).toISOString(),
-      items: [
-        { product_name_at_purchase: "محشي مشكل فلاحي عائلي", unit_price: 250, quantity: 1, total_price: 250 },
-        { product_name_at_purchase: "شوربة لسان عصفور", unit_price: 35, quantity: 2, total_price: 70 },
-      ],
-    },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   // Modal States
   const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);

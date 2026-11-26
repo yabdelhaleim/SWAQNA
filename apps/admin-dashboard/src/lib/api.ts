@@ -1,323 +1,182 @@
 // src/lib/api.ts
 import {
-  AdminMerchant,
-  AdminOrder,
-  AdminUser,
+  CaptainStatus,
   DeliveryCaptain,
-  ModeratedReel,
+  OrderStatus,
   PlatformCoupon,
-  PlatformMetrics,
-  WithdrawalRequest,
 } from "../types/admin";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
-// Default Super Admin User
-export const DEFAULT_ADMIN: AdminUser = {
-  id: "admin-super-1",
-  name: "يوسف عبد الحليم",
-  email: "admin@souqna.com",
-  role: "SUPER_ADMIN",
-  avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+async function request<T = any>(
+  endpoint: string,
+  options: RequestInit = {},
+  token?: string
+): Promise<T> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...((options.headers as Record<string, string>) || {}),
+  };
+
+  const res = await fetch(`${API_BASE_URL}/admin${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await res.json().catch(() => ({
+    success: false,
+    message: "حدث خطأ غير متوقع في الاتصال بالسيرفر",
+  }));
+
+  if (!res.ok && data.success === undefined) {
+    return { success: false, message: data.message || "خطأ في الخادم" } as T;
+  }
+
+  return data;
+}
+
+export const adminApi = {
+  login(email: string, password: string) {
+    return request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+  },
+
+  logout(token: string) {
+    return request("/auth/logout", { method: "POST" }, token);
+  },
+
+  getMetrics(token: string) {
+    return request("/metrics", { method: "GET" }, token);
+  },
+
+  getMerchants(token: string) {
+    return request("/merchants", { method: "GET" }, token);
+  },
+
+  approveMerchant(token: string, id: string) {
+    return request(`/merchants/${id}/approve`, { method: "POST" }, token);
+  },
+
+  suspendMerchant(token: string, id: string) {
+    return request(`/merchants/${id}/suspend`, { method: "POST" }, token);
+  },
+
+  updateCommission(token: string, id: string, commission_rate: number) {
+    return request(
+      `/merchants/${id}/commission`,
+      { method: "PATCH", body: JSON.stringify({ commission_rate }) },
+      token
+    );
+  },
+
+  getOrders(token: string) {
+    return request("/orders", { method: "GET" }, token);
+  },
+
+  assignCaptain(token: string, orderId: string, captain_id: string) {
+    return request(
+      `/orders/${orderId}/assign-captain`,
+      { method: "POST", body: JSON.stringify({ captain_id }) },
+      token
+    );
+  },
+
+  confirmDelivery(token: string, orderId: string, delivery_pin: string) {
+    return request(
+      `/orders/${orderId}/confirm-delivery`,
+      { method: "POST", body: JSON.stringify({ delivery_pin }) },
+      token
+    );
+  },
+
+  updateOrderStatus(token: string, orderId: string, status: OrderStatus) {
+    return request(
+      `/orders/${orderId}/status`,
+      { method: "PATCH", body: JSON.stringify({ status: status.toUpperCase() }) },
+      token
+    );
+  },
+
+  getCaptains(token: string) {
+    return request("/captains", { method: "GET" }, token);
+  },
+
+  createCaptain(token: string, data: Omit<DeliveryCaptain, "id">) {
+    return request(
+      "/captains",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: data.name,
+          phone: data.phone,
+          vehicle_type: data.vehicle_type,
+          current_zone: data.current_zone,
+        }),
+      },
+      token
+    );
+  },
+
+  updateCaptainStatus(token: string, captainId: string, status: CaptainStatus) {
+    return request(
+      `/captains/${captainId}/status`,
+      { method: "PATCH", body: JSON.stringify({ status }) },
+      token
+    );
+  },
+
+  getWithdrawals(token: string) {
+    return request("/withdrawals", { method: "GET" }, token);
+  },
+
+  approveWithdrawal(token: string, id: string) {
+    return request(`/withdrawals/${id}/approve`, { method: "POST" }, token);
+  },
+
+  rejectWithdrawal(token: string, id: string) {
+    return request(`/withdrawals/${id}/reject`, { method: "POST" }, token);
+  },
+
+  getReels(token: string) {
+    return request("/reels", { method: "GET" }, token);
+  },
+
+  toggleReel(token: string, id: string) {
+    return request(`/reels/${id}/toggle`, { method: "PATCH" }, token);
+  },
+
+  deleteReel(token: string, id: string) {
+    return request(`/reels/${id}`, { method: "DELETE" }, token);
+  },
+
+  getCoupons(token: string) {
+    return request("/coupons", { method: "GET" }, token);
+  },
+
+  createCoupon(token: string, data: Omit<PlatformCoupon, "id" | "usage_count">) {
+    return request(
+      "/coupons",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          code: data.code,
+          discount_type: "PERCENTAGE",
+          discount_value: data.discount_percentage,
+          max_discount_amount: data.max_discount_amount,
+          min_order_amount: data.min_order_amount,
+          max_uses: data.max_usage_limit,
+          expires_at: data.expires_at,
+        }),
+      },
+      token
+    );
+  },
+
+  toggleCoupon(token: string, id: string) {
+    return request(`/coupons/${id}/toggle`, { method: "PATCH" }, token);
+  },
 };
-
-// Initial Seed Data for Instant Operation & Realism
-export const INITIAL_MERCHANTS: AdminMerchant[] = [
-  {
-    id: "m-1",
-    name: "مطبخ أم أحمد للأكلات البيتي",
-    store_name: "مطبخ أم أحمد",
-    owner_name: "أم أحمد الشاذلي",
-    phone: "01012345678",
-    status: "ACTIVE",
-    merchant_type: "HOME_KITCHEN",
-    fulfillment_type: "MERCHANT_DELIVERY",
-    avg_rating: 4.9,
-    total_orders: 412,
-    total_revenue: 68450,
-    wallet_balance: 14200,
-    commission_rate: 10,
-    created_at: "2026-10-15",
-    logo_url: "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=150",
-  },
-  {
-    id: "m-2",
-    name: "برجر كينج المعادي",
-    store_name: "سماش برجر أند كو",
-    owner_name: "محمد كمال",
-    phone: "01123456789",
-    status: "ACTIVE",
-    merchant_type: "RESTAURANT",
-    fulfillment_type: "PLATFORM_DELIVERY",
-    avg_rating: 4.8,
-    total_orders: 890,
-    total_revenue: 145000,
-    wallet_balance: 31200,
-    commission_rate: 12,
-    created_at: "2026-10-20",
-    logo_url: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=150",
-  },
-  {
-    id: "m-3",
-    name: "حلويات الشام الأصيلة",
-    store_name: "كنافة وبسبوسة الشام",
-    owner_name: "أحمد السوري",
-    phone: "01234567890",
-    status: "PENDING",
-    merchant_type: "SWEETS_PASTRY",
-    fulfillment_type: "PLATFORM_DELIVERY",
-    avg_rating: 4.7,
-    total_orders: 45,
-    total_revenue: 12400,
-    wallet_balance: 3400,
-    commission_rate: 10,
-    created_at: "2026-11-20",
-    logo_url: "https://images.unsplash.com/photo-1587314168485-3236d6710814?w=150",
-  },
-  {
-    id: "m-4",
-    name: "فاشون ستايل كاجوال",
-    store_name: "عبايات وملابس مصرية",
-    owner_name: "منى زكي",
-    phone: "01598765432",
-    status: "SUSPENDED",
-    merchant_type: "RETAIL_SHOP",
-    fulfillment_type: "MERCHANT_DELIVERY",
-    avg_rating: 3.6,
-    total_orders: 68,
-    total_revenue: 19800,
-    wallet_balance: 0,
-    commission_rate: 15,
-    created_at: "2026-11-01",
-    logo_url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=150",
-  },
-];
-
-export const INITIAL_CAPTAINS: DeliveryCaptain[] = [
-  {
-    id: "cap-1",
-    name: "محمود إبراهيم (الطيار)",
-    phone: "01099887766",
-    vehicle_type: "MOTORCYCLE",
-    status: "BUSY",
-    active_order_code: "ORD-9481",
-    active_order_id: "ord-1",
-    completed_today: 7,
-    total_earnings_today: 280,
-    rating: 4.9,
-    current_zone: "المعادي - دجلة",
-  },
-  {
-    id: "cap-2",
-    name: "حسن فتحي الدسوقي",
-    phone: "01188776655",
-    vehicle_type: "MOTORCYCLE",
-    status: "AVAILABLE",
-    completed_today: 5,
-    total_earnings_today: 200,
-    rating: 4.8,
-    current_zone: "مدينة نصر - السراج",
-  },
-  {
-    id: "cap-3",
-    name: "عمر خالد الجندي",
-    phone: "01277665544",
-    vehicle_type: "CAR",
-    status: "AVAILABLE",
-    completed_today: 9,
-    total_earnings_today: 450,
-    rating: 5.0,
-    current_zone: "التجمع الخامس - التسعين",
-  },
-  {
-    id: "cap-4",
-    name: "طارق سليم عبد الله",
-    phone: "01066554433",
-    vehicle_type: "BICYCLE",
-    status: "OFFLINE",
-    completed_today: 3,
-    total_earnings_today: 110,
-    rating: 4.6,
-    current_zone: "الدقي - مصدق",
-  },
-];
-
-export const INITIAL_ORDERS: AdminOrder[] = [
-  {
-    id: "ord-1",
-    order_code: "ORD-9481",
-    customer_name: "كريم عبد العزيز",
-    customer_phone: "01011223344",
-    store_id: "m-1",
-    store_name: "مطبخ أم أحمد",
-    status: "on_the_way",
-    delivery_address: "المعادي، شارع النصر، عمارة 14 الدور الثالث",
-    total_amount: 320,
-    platform_commission: 32,
-    delivery_pin: "4829",
-    captain_id: "cap-1",
-    captain_name: "محمود إبراهيم",
-    items_summary: "طاجن ملوخية بالحمام (2) + رز معمر (1)",
-    items_count: 3,
-    created_at: "منذ 25 دقيقة",
-  },
-  {
-    id: "ord-2",
-    order_code: "ORD-9482",
-    customer_name: "سارة حسين",
-    customer_phone: "01122334455",
-    store_id: "m-2",
-    store_name: "سماش برجر أند كو",
-    status: "preparing",
-    delivery_address: "التجمع الأول، حي البنفسج 4",
-    total_amount: 450,
-    platform_commission: 54,
-    delivery_pin: "1932",
-    captain_id: "cap-3",
-    captain_name: "عمر خالد الجندي",
-    items_summary: "دبل ديلوكس برجر (2) + وافل فرايز (2) + صودا (2)",
-    items_count: 6,
-    created_at: "منذ 12 دقيقة",
-  },
-  {
-    id: "ord-3",
-    order_code: "ORD-9483",
-    customer_name: "أحمد النجار",
-    customer_phone: "01233445566",
-    store_id: "m-3",
-    store_name: "كنافة وبسبوسة الشام",
-    status: "pending",
-    delivery_address: "مدينة نصر، عباس العقاد، برج الأطباء",
-    total_amount: 180,
-    platform_commission: 18,
-    delivery_pin: "7341",
-    items_summary: "كيلو كنافة نابلسية خشنة بالجبنة (1)",
-    items_count: 1,
-    created_at: "منذ 3 دقائق",
-  },
-  {
-    id: "ord-4",
-    order_code: "ORD-9479",
-    customer_name: "مروة الشربيني",
-    customer_phone: "01055667788",
-    store_id: "m-1",
-    store_name: "مطبخ أم أحمد",
-    status: "delivered",
-    delivery_address: "حلوان، شارع راغب، عمارة الأمل",
-    total_amount: 520,
-    platform_commission: 52,
-    delivery_pin: "8821",
-    captain_name: "محمود إبراهيم",
-    items_summary: "صينية مكرونة بشاميل (1) + فرخة محشية فريك (1)",
-    items_count: 2,
-    created_at: "اليوم 02:15 م",
-  },
-];
-
-export const INITIAL_WITHDRAWALS: WithdrawalRequest[] = [
-  {
-    id: "w-1",
-    merchant_id: "m-1",
-    merchant_name: "مطبخ أم أحمد",
-    amount: 5000,
-    payout_method: "VODAFONE_CASH",
-    account_details: "01012345678 (محفظة أم أحمد)",
-    status: "PENDING",
-    created_at: "اليوم 11:30 ص",
-  },
-  {
-    id: "w-2",
-    merchant_id: "m-2",
-    merchant_name: "سماش برجر أند كو",
-    amount: 12000,
-    payout_method: "INSTAPAY",
-    account_details: "smashburger@instapay (البنك التجاري الدولي CIB)",
-    status: "APPROVED",
-    created_at: "أمس 04:20 م",
-  },
-  {
-    id: "w-3",
-    merchant_id: "m-3",
-    merchant_name: "كنافة وبسبوسة الشام",
-    amount: 1500,
-    payout_method: "VODAFONE_CASH",
-    account_details: "01234567890 (محفظة كاش)",
-    status: "PENDING",
-    created_at: "أمس 08:15 م",
-  },
-];
-
-export const INITIAL_REELS: ModeratedReel[] = [
-  {
-    id: "reel-1",
-    store_name: "مطبخ أم أحمد",
-    product_name: "طاجن الحمام بالفريك البلدي",
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-chef-serving-a-plate-with-food-43306-large.mp4",
-    thumbnail_url: "https://images.unsplash.com/photo-1544025162-d76694265947?w=400",
-    views_count: 28400,
-    likes_count: 3240,
-    reports_count: 0,
-    is_active: true,
-    created_at: "منذ يومين",
-  },
-  {
-    id: "reel-2",
-    store_name: "سماش برجر أند كو",
-    product_name: "شلال الجبنة الشيدر على البرجر",
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-frying-diced-bacon-in-a-pan-43254-large.mp4",
-    thumbnail_url: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400",
-    views_count: 64100,
-    likes_count: 8120,
-    reports_count: 1,
-    is_active: true,
-    created_at: "منذ 4 أيام",
-  },
-  {
-    id: "reel-3",
-    store_name: "حلويات الشام",
-    product_name: "تجهيز شربات الكنافة النابلسية",
-    video_url: "https://assets.mixkit.co/videos/preview/mixkit-pouring-milk-over-pancakes-43288-large.mp4",
-    thumbnail_url: "https://images.unsplash.com/photo-1587314168485-3236d6710814?w=400",
-    views_count: 12800,
-    likes_count: 980,
-    reports_count: 0,
-    is_active: true,
-    created_at: "منذ أسبوع",
-  },
-];
-
-export const INITIAL_COUPONS: PlatformCoupon[] = [
-  {
-    id: "c-1",
-    code: "SOUQNA50",
-    discount_percentage: 20,
-    max_discount_amount: 50,
-    min_order_amount: 150,
-    usage_count: 342,
-    max_usage_limit: 1000,
-    is_active: true,
-    expires_at: "2026-12-31",
-  },
-  {
-    id: "c-2",
-    code: "WELCOME10",
-    discount_percentage: 10,
-    max_discount_amount: 30,
-    min_order_amount: 100,
-    usage_count: 890,
-    max_usage_limit: 5000,
-    is_active: true,
-    expires_at: "2026-12-31",
-  },
-  {
-    id: "c-3",
-    code: "BLACKFRIDAY",
-    discount_percentage: 30,
-    max_discount_amount: 100,
-    min_order_amount: 250,
-    usage_count: 120,
-    max_usage_limit: 500,
-    is_active: false,
-    expires_at: "2026-11-30",
-  },
-];

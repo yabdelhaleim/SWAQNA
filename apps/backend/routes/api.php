@@ -1,5 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\v1\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Api\v1\Admin\CaptainController as AdminCaptainController;
+use App\Http\Controllers\Api\v1\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Api\v1\Admin\FinancialController as AdminFinancialController;
+use App\Http\Controllers\Api\v1\Admin\MerchantController as AdminMerchantController;
+use App\Http\Controllers\Api\v1\Admin\ModerationController as AdminModerationController;
+use App\Http\Controllers\Api\v1\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Api\v1\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Api\v1\Merchant\AuthController as MerchantAuthController;
 use App\Http\Controllers\Api\v1\Merchant\MenuController as MerchantMenuController;
 use App\Http\Controllers\Api\v1\Merchant\OrderController as MerchantOrderController;
@@ -42,48 +50,9 @@ Route::prefix('v1')->group(function () {
 
     // مسارات مصادقة العميل (Customer Mobile Auth API)
     Route::prefix('auth')->group(function () {
-        Route::post('/send-otp', function (Request $request) {
-            $phone = $request->input('phone') ?? $request->input('phone_number');
-            $code = '1234';
-
-            // اكتشف لو المستخدم موجود أم لا
-            $isNewUser = !\App\Models\User::where('phone_number', $phone)->exists();
-
-            return response()->json([
-                'success'    => true,
-                'message'    => 'تم إرسال كود التحقق بنجاح',
-                'debug_code' => $code,
-                'code'       => $code,
-                'is_new_user' => $isNewUser,
-            ]);
-        });
-
-        Route::post('/verify-otp', function (Request $request) {
-            $phone = $request->input('phone') ?? $request->input('phone_number');
-            $code = $request->input('otp') ?? $request->input('code');
-
-            $user = \App\Models\User::firstOrCreate(
-                ['phone_number' => $phone ?: '01000000000'],
-                [
-                    'full_name' => 'عميل سوقنا',
-                    'role' => \App\Enums\UserRole::CUSTOMER ?? 'customer',
-                    'is_active' => true,
-                    'is_phone_verified' => true,
-                ]
-            );
-
-            $token = $user->createToken('customer-token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->full_name,
-                    'phone' => $user->phone_number,
-                ],
-            ]);
-        });
+        Route::post('/send-otp', [CustomerAuthController::class, 'sendOtp']);
+        Route::post('/verify-otp', [CustomerAuthController::class, 'verifyOtp']);
+        Route::post('/register', [CustomerAuthController::class, 'register']);
     });
 
     // تغذية الريلز العامة والاستكشاف والبحث والمتاجر (Public Mobile Feeds)
@@ -142,46 +111,6 @@ Route::prefix('v1')->group(function () {
         });
     });
 
-    // POST /auth/register — تسجيل عميل جديد بعد التحقق من OTP
-    Route::post('/auth/register', function (Request $request) {
-        $request->validate([
-            'name'  => 'required|string|min:2',
-            'phone' => 'required|string',
-            'otp'   => 'required|string',
-        ]);
-
-        $user = \App\Models\User::firstOrCreate(
-            ['phone_number' => $request->phone],
-            [
-                'full_name'         => $request->name,
-                'role'              => 'customer',
-                'is_active'         => true,
-                'is_phone_verified' => true,
-            ]
-        );
-
-        // لو اليوزر موجود — اپديت الاسم
-        if (!$user->wasRecentlyCreated) {
-            $user->full_name = $request->name;
-            $user->save();
-        }
-
-        $token = $user->createToken('customer-token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'token'   => $token,
-            'user'    => [
-                'id'    => $user->id,
-                'name'  => $user->full_name,
-                'phone' => $user->phone_number,
-            ],
-        ]);
-    });
-
-    // إصلاح send-otp: يكتشف لو المستخدم جديد
-    // (استبدال الـ closure الموجودة أعلاه)
-
     // =========================================================================
     // مسارات لوحة تحكم التاجر (Merchant Dashboard API)
     // =========================================================================
@@ -232,7 +161,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // إدارة الفيديوهات والريلز (Reels Management)
-        Route::prefix('reels')->group(function () {
+        Route::prefix('reels')->middleware(['auth:sanctum', 'merchant'])->group(function () {
             Route::get('/', [MerchantReelController::class, 'index']);
             Route::post('/', [MerchantReelController::class, 'store']);
             Route::get('/{id}', [MerchantReelController::class, 'show']);
@@ -247,6 +176,46 @@ Route::prefix('v1')->group(function () {
             Route::post('/withdraw', [MerchantWalletController::class, 'withdraw']);
         });
 
+    });
+
+    // =========================================================================
+    // مسارات لوحة الإدارة العامة والتحكم (Admin Dashboard API)
+    // =========================================================================
+    Route::prefix('admin')->group(function () {
+        Route::post('/auth/login', [AdminAuthController::class, 'login']);
+
+        Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+            Route::get('/auth/me', [AdminAuthController::class, 'me']);
+            Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
+
+            Route::get('/metrics', [AdminDashboardController::class, 'metrics']);
+
+            Route::get('/merchants', [AdminMerchantController::class, 'index']);
+            Route::post('/merchants/{id}/approve', [AdminMerchantController::class, 'approve']);
+            Route::post('/merchants/{id}/suspend', [AdminMerchantController::class, 'suspend']);
+            Route::patch('/merchants/{id}/commission', [AdminMerchantController::class, 'updateCommission']);
+
+            Route::get('/orders', [AdminOrderController::class, 'index']);
+            Route::post('/orders/{id}/assign-captain', [AdminOrderController::class, 'assignCaptain']);
+            Route::post('/orders/{id}/confirm-delivery', [AdminOrderController::class, 'confirmDelivery']);
+            Route::patch('/orders/{id}/status', [AdminOrderController::class, 'updateStatus']);
+
+            Route::get('/captains', [AdminCaptainController::class, 'index']);
+            Route::post('/captains', [AdminCaptainController::class, 'store']);
+            Route::patch('/captains/{id}/status', [AdminCaptainController::class, 'updateStatus']);
+
+            Route::get('/withdrawals', [AdminFinancialController::class, 'withdrawals']);
+            Route::post('/withdrawals/{id}/approve', [AdminFinancialController::class, 'approveWithdrawal']);
+            Route::post('/withdrawals/{id}/reject', [AdminFinancialController::class, 'rejectWithdrawal']);
+
+            Route::get('/reels', [AdminModerationController::class, 'reels']);
+            Route::patch('/reels/{id}/toggle', [AdminModerationController::class, 'toggleReel']);
+            Route::delete('/reels/{id}', [AdminModerationController::class, 'deleteReel']);
+
+            Route::get('/coupons', [AdminModerationController::class, 'coupons']);
+            Route::post('/coupons', [AdminModerationController::class, 'storeCoupon']);
+            Route::patch('/coupons/{id}/toggle', [AdminModerationController::class, 'toggleCoupon']);
+        });
     });
 
 });

@@ -21,6 +21,7 @@ class Order extends Model
         'customer_id',
         'merchant_id',
         'delivery_captain_id',
+        'captain_id',
         'delivery_address_id',
         'customer_name',
         'customer_phone',
@@ -81,6 +82,11 @@ class Order extends Model
     public function deliveryCaptain(): BelongsTo
     {
         return $this->belongsTo(User::class, 'delivery_captain_id');
+    }
+
+    public function captain(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryCaptain::class, 'captain_id');
     }
 
     public function address(): BelongsTo

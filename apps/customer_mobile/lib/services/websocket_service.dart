@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../config/app_config.dart';
 import 'api_service.dart';
 
 typedef EventCallback = void Function(Map<String, dynamic> data);
@@ -19,11 +20,10 @@ class ReverbWebSocket {
   ReverbWebSocket._internal();
 
   // ─── Config ───────────────────────────────────────────────────────────────
-  // على الـ Android Emulator يستخدم 10.0.2.2 للوصول لـ localhost الكمبيوتر
-  static const String _wsHost = '10.0.2.2';
-  static const int _wsPort = 8080;
-  static const String _appKey = 'hnghnwywzmpxeg2kxdfr';
-  static const String _authEndpoint = 'http://10.0.2.2:8000/api/broadcasting/auth';
+  static String get _wsHost => AppConfig.wsHost;
+  static int get _wsPort => AppConfig.wsPort;
+  static String get _appKey => AppConfig.reverbAppKey;
+  static String get _authEndpoint => AppConfig.broadcastingAuthUrl;
 
   // ─── State ────────────────────────────────────────────────────────────────
   WebSocket? _socket;
@@ -46,7 +46,7 @@ class ReverbWebSocket {
   Future<void> connect() async {
     if (_isConnected) return;
     try {
-      const wsUrl = 'ws://$_wsHost:$_wsPort/app/$_appKey'
+      final wsUrl = '${AppConfig.wsScheme}://$_wsHost:$_wsPort/app/$_appKey'
           '?protocol=7&client=dart-reverb&version=1.0.0';
 
       _socket = await WebSocket.connect(wsUrl);

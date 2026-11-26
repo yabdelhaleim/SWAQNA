@@ -1,12 +1,12 @@
 // lib/services/api_service.dart
 import 'dart:convert';
 import 'dart:io';
+import '../config/app_config.dart';
 import '../models/address_model.dart';
 import '../models/reel_comment_model.dart';
 
 class ApiService {
-  // ✅ localhost للـ Android Emulator يستخدم 10.0.2.2 — للـ real device غيّرها لـ IP الكمبيوتر
-  static String _baseUrl = 'http://10.0.2.2:8000/api/v1';
+  static String _baseUrl = AppConfig.apiBaseUrl;
   static String? _token;
 
   static void setBaseUrl(String url) => _baseUrl = url;

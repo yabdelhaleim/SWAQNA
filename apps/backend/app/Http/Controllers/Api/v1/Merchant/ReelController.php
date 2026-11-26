@@ -18,10 +18,9 @@ class ReelController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $merchant = $user?->merchant ?: \App\Models\Merchant::first();
+        $merchant = $request->user()?->merchant;
         if (!$merchant) {
-            return response()->json(['success' => true, 'data' => []]);
+            return response()->json(['success' => false, 'message' => 'المتجر غير موجود'], 404);
         }
 
         $query = Reel::with(['product'])
@@ -66,23 +65,9 @@ class ReelController extends Controller
      */
     public function store(StoreReelRequest $request): JsonResponse
     {
-        $merchant = $request->user()?->merchant ?: \App\Models\Merchant::first();
+        $merchant = $request->user()?->merchant;
         if (!$merchant) {
-            $user = \App\Models\User::firstOrCreate(
-                ['phone_number' => '01012345678'],
-                ['full_name' => 'الشيف أم أحمد', 'role' => \App\Enums\UserRole::MERCHANT_OWNER, 'is_active' => true, 'is_phone_verified' => true]
-            );
-            $merchant = \App\Models\Merchant::firstOrCreate(
-                ['owner_id' => $user->id],
-                [
-                    'id' => (string) \Illuminate\Support\Str::uuid(),
-                    'store_name' => 'مطبخ أم أحمد للأكل البيتي',
-                    'slug' => 'om-ahmed-store',
-                    'phone_number' => '01012345678',
-                    'status' => \App\Enums\MerchantStatus::APPROVED,
-                    'is_verified' => true,
-                ]
-            );
+            return response()->json(['success' => false, 'message' => 'المتجر غير موجود'], 404);
         }
 
         // 1. Handle Video Upload or URL
@@ -142,7 +127,7 @@ class ReelController extends Controller
      */
     public function show(Request $request, string $id): JsonResponse
     {
-        $merchant = $request->user()?->merchant ?: \App\Models\Merchant::first();
+        $merchant = $request->user()?->merchant;
         if (!$merchant) {
             return response()->json(['success' => false, 'message' => 'المتجر غير موجود'], 404);
         }
@@ -162,7 +147,7 @@ class ReelController extends Controller
      */
     public function toggleStatus(Request $request, string $id): JsonResponse
     {
-        $merchant = $request->user()?->merchant ?: \App\Models\Merchant::first();
+        $merchant = $request->user()?->merchant;
         if (!$merchant) {
             return response()->json(['success' => false, 'message' => 'المتجر غير موجود'], 404);
         }
@@ -186,7 +171,7 @@ class ReelController extends Controller
      */
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $merchant = $request->user()?->merchant ?: \App\Models\Merchant::first();
+        $merchant = $request->user()?->merchant;
         if (!$merchant) {
             return response()->json(['success' => false, 'message' => 'المتجر غير موجود'], 404);
         }

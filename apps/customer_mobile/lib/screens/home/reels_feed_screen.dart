@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+import '../../config/app_config.dart';
 import '../../models/reel_model.dart';
 import '../../providers/reels_provider.dart';
 import '../../services/api_service.dart';
@@ -516,27 +517,22 @@ class _ReelVideoPlayerState extends State<ReelVideoPlayer> {
     final videoUrl = widget.videoUrl.trim();
     if (videoUrl.isEmpty) return;
 
-    // تحويل أي رابط قديم أو localhost تلقائياً لرابط سيرفر Cloudflare السريع
+    // توحيد روابط الميديا المحلية لتعمل مع السيرفر المحدد في AppConfig
     String cleanUrl = videoUrl;
-    const cfHost = 'https://realm-qualification-maryland-running.trycloudflare.com';
-    if (cleanUrl.contains('localhost:8000') || cleanUrl.contains('127.0.0.1:8000') || cleanUrl.contains('loca.lt')) {
+    if (cleanUrl.startsWith('/')) {
+      cleanUrl = '${AppConfig.mediaBaseUrl}$cleanUrl';
+    } else if (cleanUrl.contains('localhost:8000') || cleanUrl.contains('127.0.0.1:8000')) {
       final parsed = Uri.tryParse(cleanUrl);
       if (parsed != null && parsed.path.isNotEmpty) {
-        cleanUrl = '$cfHost${parsed.path}';
+        cleanUrl = '${AppConfig.mediaBaseUrl}${parsed.path}';
       }
     }
 
     final uri = Uri.tryParse(cleanUrl);
     if (uri == null) return;
 
-    final headers = uri.host.contains('loca.lt')
-        ? {'bypass-tunnel-reminder': 'true'}
-        : <String, String>{};
-
-    _controller = VideoPlayerController.networkUrl(
-      uri,
-      httpHeaders: headers,
-    )..initialize().then((_) {
+    _controller = VideoPlayerController.networkUrl(uri)
+      ..initialize().then((_) {
         if (!mounted) return;
         setState(() {
           _isInitialized = true;

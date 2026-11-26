@@ -19,6 +19,7 @@ class User extends Authenticatable
         'full_name',
         'phone_number',
         'email',
+        'password',
         'avatar_url',
         'role',
         'is_active',
@@ -26,12 +27,14 @@ class User extends Authenticatable
     ];
 
     protected $hidden = [
+        'password',
         'remember_token',
     ];
 
     protected function casts(): array
     {
         return [
+            'password' => 'hashed',
             'role' => UserRole::class,
             'is_active' => 'boolean',
             'is_phone_verified' => 'boolean',
