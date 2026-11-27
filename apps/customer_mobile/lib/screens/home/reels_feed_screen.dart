@@ -239,18 +239,20 @@ class _ReelsFeedScreenState extends State<ReelsFeedScreen> {
                       isCurrent: _currentIndex == index,
                     ),
 
-                  // تدرج ظل سفلي لقراءة النصوص بوضوح
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withAlpha(51),
-                          Colors.black.withAlpha(217),
-                        ],
-                        stops: const [0.4, 0.65, 1.0],
+                  // تدرج ظل سفلي لقراءة النصوص بوضوح (IgnorePointer حتى لا يمنع الضغط للتشغيل/الإيقاف)
+                  IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withAlpha(51),
+                            Colors.black.withAlpha(217),
+                          ],
+                          stops: const [0.4, 0.65, 1.0],
+                        ),
                       ),
                     ),
                   ),
@@ -540,6 +542,7 @@ class _ReelVideoPlayerState extends State<ReelVideoPlayer> {
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _isPlaying = false;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -550,6 +553,7 @@ class _ReelVideoPlayerState extends State<ReelVideoPlayer> {
   void _initVideo() {
     final videoUrl = widget.videoUrl.trim();
     if (videoUrl.isEmpty) return;
+    if (mounted) setState(() => _hasError = false);
 
     // توحيد روابط الميديا المحلية لتعمل مع السيرفر المحدد في AppConfig
     String cleanUrl = videoUrl;
@@ -568,17 +572,19 @@ class _ReelVideoPlayerState extends State<ReelVideoPlayer> {
     _controller = VideoPlayerController.networkUrl(uri)
       ..initialize().then((_) {
         if (!mounted) return;
-        setState(() {
-          _isInitialized = true;
-        });
         _controller?.setLooping(true);
         _controller?.setVolume(1.0);
         if (widget.isCurrent) {
           _controller?.play();
-          _isPlaying = true;
         }
+        setState(() {
+          _isInitialized = true;
+          _hasError = false;
+          _isPlaying = widget.isCurrent;
+        });
       }).catchError((err) {
         debugPrint('Video player error for $cleanUrl: $err');
+        if (mounted) setState(() => _hasError = true);
       });
   }
 
@@ -656,17 +662,31 @@ class _ReelVideoPlayerState extends State<ReelVideoPlayer> {
               ),
             ),
 
-          // 3. Loading Buffering Spinner
+          // 3. Loading Buffering Spinner or Retry on Error
           if (!_isInitialized && widget.videoUrl.isNotEmpty)
-            const Center(
-              child: SizedBox(
-                width: 44,
-                height: 44,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: AppTheme.primaryYellow,
-                ),
-              ),
+            Center(
+              child: _hasError
+                  ? ElevatedButton.icon(
+                      onPressed: () {
+                        _controller?.dispose();
+                        _controller = null;
+                        _initVideo();
+                      },
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('إعادة تحميل الفيديو'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryYellow,
+                        foregroundColor: Colors.black,
+                      ),
+                    )
+                  : const SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: AppTheme.primaryYellow,
+                      ),
+                    ),
             ),
 
           // 4. Video Progress Bar at the bottom
