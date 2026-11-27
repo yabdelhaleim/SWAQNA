@@ -145,13 +145,15 @@ class AuthController extends Controller
         $slug = $baseSlug . '-' . substr(uniqid(), -4);
 
         // إحداثيات الموقع الافتراضية (القاهرة) إذا لم تُحدد
-        $lat = $validated['latitude'] ?? 30.0444;
-        $lng = $validated['longitude'] ?? 31.2357;
+        $lat = (float) ($validated['latitude'] ?? 30.0444);
+        $lng = (float) ($validated['longitude'] ?? 31.2357);
 
-        $isPgsql = DB::connection()->getDriverName() === 'pgsql';
-        $locationValue = $isPgsql
-            ? DB::raw("ST_SetSRID(ST_MakePoint({$lng}, {$lat}), 4326)")
-            : "POINT({$lng} {$lat})";
+        $driver = DB::connection()->getDriverName();
+        $locationValue = match ($driver) {
+            'pgsql' => DB::raw("ST_SetSRID(ST_MakePoint({$lng}, {$lat}), 4326)"),
+            'mysql', 'mariadb' => DB::raw("ST_GeomFromText('POINT({$lng} {$lat})')"),
+            default => "POINT({$lng} {$lat})",
+        };
 
         return DB::transaction(function () use ($user, $validated, $slug, $locationValue) {
             // تحديد وقت التجهيز الافتراضي بناءً على طبيعة المتجر
