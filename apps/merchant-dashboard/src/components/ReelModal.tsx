@@ -198,20 +198,20 @@ export default function ReelModal({
     "https://assets.mixkit.co/videos/preview/mixkit-top-shot-of-a-dish-with-curry-and-rice-42407-large.mp4";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none animate-in fade-in" dir="rtl">
-      <div className="card-glass border border-souqna-gold/25 rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col md:flex-row text-right relative">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-5 select-none animate-in fade-in" dir="rtl">
+      <div className="card-glass border border-souqna-gold/25 rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto md:overflow-hidden shadow-2xl flex flex-col md:flex-row text-right relative">
         {/* Close Button Top Left */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 left-4 z-40 w-9 h-9 rounded-full bg-souqna-surface/80 hover:bg-souqna-surface text-souqna-text-secondary hover:text-white flex items-center justify-center backdrop-blur-md transition-colors border border-souqna-border"
+          className="absolute top-3 left-3 sm:top-4 sm:left-4 z-40 w-9 h-9 rounded-full bg-souqna-surface/80 hover:bg-souqna-surface text-souqna-text-secondary hover:text-white flex items-center justify-center backdrop-blur-md transition-colors border border-souqna-border"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Smartphone Preview Frame */}
-        <div className="md:w-5/12 bg-souqna-base/80 p-5 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-l border-souqna-border">
-          <div className="relative w-[230px] sm:w-[250px] aspect-[9/16] bg-black rounded-[36px] p-2.5 shadow-2xl border-4 border-souqna-border flex flex-col justify-between overflow-hidden">
+        <div className="md:w-5/12 bg-souqna-base/80 p-4 sm:p-5 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-l border-souqna-border shrink-0">
+          <div className="relative w-[180px] sm:w-[230px] aspect-[9/16] bg-black rounded-[36px] p-2.5 shadow-2xl border-4 border-souqna-border flex flex-col justify-between overflow-hidden">
             {/* Phone Notch */}
             <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-3.5 bg-stone-900 rounded-full z-30 flex items-center justify-center">
               <div className="w-2 h-2 rounded-full bg-stone-800"></div>

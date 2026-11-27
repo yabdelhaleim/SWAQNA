@@ -86,9 +86,9 @@ export const AdminShell: React.FC<AdminShellProps> = ({
   ];
 
   return (
-    <div className="min-h-screen flex bg-souqna-base text-souqna-text-primary antialiased">
+    <div className="min-h-dvh flex bg-souqna-base text-souqna-text-primary antialiased overflow-x-hidden">
       {/* ===== Sidebar (Desktop) ===== */}
-      <aside className="hidden lg:flex flex-col w-72 bg-souqna-surface/90 backdrop-blur-xl border-l border-souqna-border/80 p-5 shrink-0 select-none">
+      <aside className="hidden lg:flex flex-col w-72 bg-souqna-surface/90 backdrop-blur-xl border-l border-souqna-border/80 p-5 shrink-0 select-none h-screen sticky top-0 overflow-y-auto">
         {/* Brand Header */}
         <div className="flex items-center gap-3 pb-6 border-b border-souqna-border/60">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-souqna-gold to-souqna-gold-dark flex items-center justify-center shadow-gold-glow">
@@ -181,25 +181,26 @@ export const AdminShell: React.FC<AdminShellProps> = ({
       </aside>
 
       {/* ===== Main Content Area ===== */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 min-h-dvh">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 h-16 bg-souqna-base/80 backdrop-blur-xl border-b border-souqna-border/60 px-4 lg:px-8 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 h-14 sm:h-16 bg-souqna-base/85 backdrop-blur-xl border-b border-souqna-border/60 px-3 sm:px-4 lg:px-8 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl bg-souqna-card border border-souqna-border text-souqna-text-secondary hover:text-white"
+              className="lg:hidden p-2 rounded-xl bg-souqna-card border border-souqna-border text-souqna-text-secondary hover:text-white shrink-0"
+              aria-label="القائمة"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <div>
-              <h1 className="text-base lg:text-lg font-bold text-white font-cairo flex items-center gap-2">
-                <span>{navItems.find((n) => n.id === activeTab)?.label}</span>
-                <Sparkles className="w-4 h-4 text-souqna-gold" />
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base lg:text-lg font-bold text-white font-cairo flex items-center gap-1.5 sm:gap-2 truncate">
+                <span className="truncate">{navItems.find((n) => n.id === activeTab)?.label}</span>
+                <Sparkles className="w-4 h-4 text-souqna-gold shrink-0" />
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <button
               onClick={() => window.location.reload()}
               title="تحديث البيانات"
@@ -215,40 +216,135 @@ export const AdminShell: React.FC<AdminShellProps> = ({
           </div>
         </header>
 
-        {/* Mobile Navigation Drawer */}
+        {/* Mobile Slide-Over Navigation Drawer */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden bg-souqna-surface border-b border-souqna-border p-4 space-y-2 z-20">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    onTabChange(item.id);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold ${
-                    isActive ? "bg-souqna-gold/20 text-souqna-gold font-bold" : "text-souqna-text-secondary"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
+          <div
+            className="lg:hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <aside
+              className="absolute right-0 top-0 h-full w-72 max-w-[85vw] bg-souqna-surface border-l border-souqna-border p-4 flex flex-col overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-souqna-border/60">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-souqna-gold to-souqna-gold-dark flex items-center justify-center">
+                    <span className="text-lg">🛒</span>
                   </div>
-                  {item.badge && (
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-souqna-card text-souqna-gold">
-                      {item.badge}
+                  <div>
+                    <span className="font-extrabold text-lg text-white font-cairo">سـوقـنا</span>
+                    <span className="mr-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-souqna-gold/15 text-souqna-gold border border-souqna-gold/30">
+                      ADMIN
                     </span>
-                  )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2 rounded-xl bg-souqna-card border border-souqna-border text-souqna-text-secondary hover:text-white"
+                >
+                  <X className="w-4 h-4" />
                 </button>
-              );
-            })}
+              </div>
+
+              <nav className="mt-4 flex-1 space-y-1.5">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        onTabChange(item.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold transition-colors ${
+                        isActive ? "bg-souqna-gold/20 text-souqna-gold font-bold" : "text-souqna-text-secondary hover:text-white hover:bg-souqna-card/60"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-5 h-5" />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${item.badgeColor || "bg-souqna-card text-souqna-gold"}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+
+              <div className="pt-4 border-t border-souqna-border/60 space-y-3 mt-4">
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-souqna-card/60 border border-souqna-border/40">
+                  <div className="w-9 h-9 rounded-xl bg-souqna-border flex items-center justify-center overflow-hidden shrink-0">
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-base">👑</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                    <p className="text-[11px] text-souqna-gold font-medium truncate">سوبر أدمن المنصة</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onLogout();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>تسجيل الخروج</span>
+                </button>
+              </div>
+            </aside>
           </div>
         )}
 
         {/* Dynamic Tab Body */}
-        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto">{children}</main>
+        <main className="flex-1 p-3 sm:p-4 lg:p-8 pb-24 lg:pb-8 max-w-7xl w-full mx-auto">{children}</main>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-souqna-surface/95 backdrop-blur-md border-t border-souqna-border/80 px-1 py-1.5 flex items-center justify-around">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            const shortLabel =
+              item.id === "overview" ? "الرئيسية" :
+              item.id === "merchants" ? "المتاجر" :
+              item.id === "orders" ? "الطلبات" :
+              item.id === "captains" ? "المناديب" :
+              item.id === "financials" ? "المالية" : "المحتوى";
+            const badgeCount =
+              item.id === "merchants" ? pendingMerchantsCount :
+              item.id === "orders" ? liveOrdersCount :
+              item.id === "financials" ? pendingWithdrawalsCount : 0;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onTabChange(item.id)}
+                className={`relative flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-xl min-w-[48px] transition-colors ${
+                  isActive ? "text-souqna-gold" : "text-souqna-text-muted hover:text-white"
+                }`}
+              >
+                <div className="relative">
+                  <Icon className="w-5 h-5" />
+                  {badgeCount > 0 && (
+                    <span className="absolute -top-1.5 -left-2 min-w-[16px] h-4 px-1 rounded-full bg-souqna-gold text-souqna-base text-[9px] font-black flex items-center justify-center">
+                      {badgeCount > 9 ? "9+" : badgeCount}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-bold truncate max-w-[54px]">{shortLabel}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );

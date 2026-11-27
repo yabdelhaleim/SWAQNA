@@ -429,7 +429,7 @@ export default function MerchantWalletView({
               <p className="text-xs font-semibold">لا توجد حركات مالية مسجلة في هذا التبويب حالياً</p>
             </div>
           ) : (
-            <table className="w-full text-right text-xs">
+            <table className="w-full min-w-[640px] text-right text-xs">
               <thead>
                 <tr className="border-b border-souqna-border/60 text-souqna-text-muted font-bold text-[11px]">
                   <th className="pb-3 pr-2">الحركة / البيان</th>

@@ -1019,7 +1019,7 @@ export default function MerchantOrdersView({
                 <label className="text-souqna-text-secondary text-xs font-bold mb-2 block">
                   وقت التحضير المتوقع (بالدقائق):
                 </label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                   {[20, 30, 45, 60, 90].map((min) => (
                     <button
                       key={min}

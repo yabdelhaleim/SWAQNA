@@ -85,7 +85,7 @@ export const AdminFinancialsView: React.FC<AdminFinancialsViewProps> = ({
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 p-2 rounded-2xl bg-souqna-surface border border-souqna-border w-fit">
+      <div className="flex flex-wrap items-center gap-2 p-2 rounded-2xl bg-souqna-surface border border-souqna-border w-full sm:w-fit">
         {[
           { id: "ALL", label: "كل الطلبات" },
           { id: "PENDING", label: `معلقة (${pendingWithdrawals.length})` },

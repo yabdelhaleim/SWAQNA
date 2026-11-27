@@ -77,7 +77,7 @@ export default function MerchantShell({
   const storeInfo = STORE_TYPE_LABELS[storeType];
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0 h-full">
       {/* ── Logo ── */}
       <div className="px-5 pt-6 pb-5 border-b border-souqna-border">
         <div className="flex items-center gap-2 mb-1">
@@ -185,7 +185,7 @@ export default function MerchantShell({
   );
 
   return (
-    <div className="min-h-dvh bg-souqna-base flex" dir="rtl">
+    <div className="min-h-dvh bg-souqna-base flex overflow-x-hidden" dir="rtl">
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden lg:flex flex-col w-64 xl:w-72 flex-shrink-0 bg-souqna-surface border-l border-souqna-border h-screen sticky top-0 overflow-hidden">
         <SidebarContent />
@@ -199,10 +199,10 @@ export default function MerchantShell({
           className="lg:hidden fixed inset-0 z-50 sidebar-overlay bg-black/60"
         >
           <aside
-            className="absolute right-0 top-0 h-full w-72 max-w-[85vw] bg-souqna-surface border-l border-souqna-border animate-slide-in-right overflow-hidden"
+            className="absolute right-0 top-0 h-full w-72 max-w-[85vw] bg-souqna-surface border-l border-souqna-border animate-slide-in-right flex flex-col overflow-hidden"
           >
-            <div className="flex justify-between items-center px-4 pt-4 pb-2">
-              <span className="text-souqna-text-muted text-xs">القائمة</span>
+            <div className="flex justify-between items-center px-4 pt-4 pb-2 shrink-0 border-b border-souqna-border/50">
+              <span className="text-souqna-text-muted text-xs font-semibold">القائمة</span>
               <button
                 onClick={() => setSidebarOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-souqna-border transition-colors"
@@ -216,7 +216,7 @@ export default function MerchantShell({
       )}
 
       {/* ── Main Content Area ── */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-auto">
+      <div className="flex-1 flex flex-col min-w-0 min-h-dvh lg:h-screen lg:overflow-auto">
         {/* ── Top Bar ── */}
         <header className="sticky top-0 z-30 bg-souqna-surface/90 backdrop-blur-sm border-b border-souqna-border px-4 md:px-6 py-3">
           <div className="flex items-center gap-3">
@@ -265,15 +265,15 @@ export default function MerchantShell({
               </button>
 
               {activeOrdersCount > 0 && (
-                <div className="flex items-center gap-1.5 bg-souqna-gold/10 border border-souqna-gold/20 rounded-lg px-3 py-1.5">
+                <div className="flex items-center gap-1.5 bg-souqna-gold/10 border border-souqna-gold/20 rounded-lg px-2 sm:px-3 py-1.5">
                   <span className="w-1.5 h-1.5 bg-souqna-gold rounded-full animate-pulse" />
-                  <span className="text-souqna-gold text-xs font-bold">{activeOrdersCount} طلب نشط</span>
+                  <span className="text-souqna-gold text-[11px] sm:text-xs font-bold whitespace-nowrap">{activeOrdersCount} نشط</span>
                 </div>
               )}
               {todaySales > 0 && (
-                <div className="flex items-center gap-1.5 bg-souqna-emerald/10 border border-souqna-emerald/20 rounded-lg px-3 py-1.5">
+                <div className="hidden sm:flex items-center gap-1.5 bg-souqna-emerald/10 border border-souqna-emerald/20 rounded-lg px-3 py-1.5">
                   <TrendingUp className="w-3.5 h-3.5 text-souqna-emerald" />
-                  <span className="text-souqna-emerald text-xs font-bold">
+                  <span className="text-souqna-emerald text-xs font-bold whitespace-nowrap">
                     {todaySales.toLocaleString("ar-EG")} ج.م اليوم
                   </span>
                 </div>
@@ -283,9 +283,39 @@ export default function MerchantShell({
         </header>
 
         {/* ── Page Content ── */}
-        <main className="flex-1 p-4 md:p-6 page-enter">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 pb-24 lg:pb-6 page-enter">
           {children}
         </main>
+
+        {/* ── Mobile Bottom Navigation Bar ── */}
+        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-souqna-surface/95 backdrop-blur-md border-t border-souqna-border px-1 py-1.5 flex items-center justify-around">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentView === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleNav(item.id)}
+                className={`relative flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-xl min-w-[56px] transition-colors ${
+                  isActive ? "text-souqna-gold" : "text-souqna-text-muted hover:text-souqna-text-primary"
+                }`}
+              >
+                <div className="relative">
+                  <Icon className="w-5 h-5" />
+                  {item.id === "orders" && pendingOrdersCount > 0 && (
+                    <span className="absolute -top-1.5 -left-2 min-w-[16px] h-4 px-1 rounded-full bg-souqna-red text-white text-[9px] font-black flex items-center justify-center">
+                      {pendingOrdersCount > 9 ? "9+" : pendingOrdersCount}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-bold truncate max-w-[64px]">
+                  {item.id === "orders" ? "الطلبات" : item.id === "reels" ? "الريلز" : item.id === "menu" ? "المنيو" : item.id === "wallet" ? "المحفظة" : "الإعدادات"}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );
