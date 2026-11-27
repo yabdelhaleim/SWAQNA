@@ -70,8 +70,16 @@ class AuthController extends Controller
             );
 
             // تحديث حالة التحقق من الهاتف إذا كان حساباً قديماً
+            // وترقية حساب العميل إلى مالك متجر عند تسجيل الدخول من بوابة التجار
+            $updates = [];
             if (!$user->is_phone_verified) {
-                $user->update(['is_phone_verified' => true]);
+                $updates['is_phone_verified'] = true;
+            }
+            if ($user->role === UserRole::CUSTOMER) {
+                $updates['role'] = UserRole::MERCHANT_OWNER;
+            }
+            if (!empty($updates)) {
+                $user->update($updates);
             }
 
             // 3. فحص هل المستخدم يمتلك متجراً بالفعل؟
