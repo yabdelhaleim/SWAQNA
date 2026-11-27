@@ -80,15 +80,19 @@ export default function MerchantShell({
     <div className="flex flex-col flex-1 min-h-0 h-full">
       {/* ── Logo ── */}
       <div className="px-5 pt-6 pb-5 border-b border-souqna-border">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-souqna-gold/15 flex items-center justify-center">
-            <ShoppingBag className="w-5 h-5 text-souqna-gold" />
-          </div>
+        <div className="flex items-center gap-3 mb-1">
+          <img
+            src="/images/swaqna-icon.png"
+            alt="سوقنا"
+            className="w-10 h-10 rounded-xl object-cover shadow-md border border-[#26A69A]/30 shrink-0"
+          />
           <div>
-            <div className="text-souqna-gold font-black text-xl leading-none tracking-tight" style={{ fontFamily: "'Cairo', sans-serif" }}>
-              سـوقـنا
-            </div>
-            <div className="text-souqna-text-muted text-[10px] font-medium mt-0.5">
+            <img
+              src="/images/swaqna-logo.svg"
+              alt="سوقنا"
+              className="h-7 w-auto object-contain"
+            />
+            <div className="text-souqna-text-muted text-[10px] font-medium mt-1">
               بوابة الشركاء والتجار
             </div>
           </div>

@@ -91,12 +91,18 @@ export const AdminShell: React.FC<AdminShellProps> = ({
       <aside className="hidden lg:flex flex-col w-72 bg-souqna-surface/90 backdrop-blur-xl border-l border-souqna-border/80 p-5 shrink-0 select-none h-screen sticky top-0 overflow-y-auto">
         {/* Brand Header */}
         <div className="flex items-center gap-3 pb-6 border-b border-souqna-border/60">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-souqna-gold to-souqna-gold-dark flex items-center justify-center shadow-gold-glow">
-            <span className="text-2xl">🛒</span>
-          </div>
+          <img
+            src="/images/swaqna-icon.png"
+            alt="سوقنا"
+            className="w-12 h-12 rounded-2xl object-cover border border-[#26A69A]/30 shadow-md shrink-0"
+          />
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-2xl tracking-tight text-white font-cairo">سـوقـنا</span>
+            <div className="flex items-center gap-2">
+              <img
+                src="/images/swaqna-logo.svg"
+                alt="سوقنا"
+                className="h-7 w-auto object-contain"
+              />
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-souqna-gold/15 text-souqna-gold border border-souqna-gold/30">
                 ADMIN
               </span>
@@ -228,12 +234,18 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             >
               <div className="flex items-center justify-between pb-4 border-b border-souqna-border/60">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-souqna-gold to-souqna-gold-dark flex items-center justify-center">
-                    <span className="text-lg">🛒</span>
-                  </div>
-                  <div>
-                    <span className="font-extrabold text-lg text-white font-cairo">سـوقـنا</span>
-                    <span className="mr-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-souqna-gold/15 text-souqna-gold border border-souqna-gold/30">
+                  <img
+                    src="/images/swaqna-icon.png"
+                    alt="سوقنا"
+                    className="w-9 h-9 rounded-xl object-cover border border-[#26A69A]/30 shrink-0"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    <img
+                      src="/images/swaqna-logo.svg"
+                      alt="سوقنا"
+                      className="h-6 w-auto object-contain"
+                    />
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-souqna-gold/15 text-souqna-gold border border-souqna-gold/30">
                       ADMIN
                     </span>
                   </div>

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 210" width="540" height="210">
+  <!-- سـ (Teal #26A69A) -->
+  <g fill="#26A69A">
+    <!-- Tooth 1 (rightmost) -->
+    <polygon points="484,64 508,54 508,132 484,132"/>
+    <!-- Tooth 2 (middle) -->
+    <polygon points="440,64 464,54 464,132 440,132"/>
+    <!-- Tooth 3 (left) -->
+    <polygon points="396,64 420,54 420,132 396,132"/>
+    <!-- Baseline connecting bar to و -->
+    <rect x="364" y="108" width="144" height="24"/>
+  </g>
+
+  <!-- وقـ (Orange #E8521A) -->
+  <g fill="#E8521A">
+    <!-- و head (chamfered Kufi loop sitting on baseline, unmistakable Waw) -->
+    <path fill-rule="evenodd" d="
+      M 316,56 L 352,56 L 364,68 L 364,132 L 304,132 L 304,68 Z
+      M 326,78 L 326,108 L 342,108 L 342,78 Z
+    "/>
+    <!-- و sweeping Kufi tail curving down-left from bottom-right of head -->
+    <polygon points="364,132 364,154 316,184 282,184 282,162 310,162 340,144 340,132"/>
+
+    <!-- قـ loop (chamfered top Kufi loop) -->
+    <path fill-rule="evenodd" d="
+      M 204,56 L 244,56 L 256,68 L 256,132 L 192,132 L 192,68 Z
+      M 214,78 L 214,108 L 234,108 L 234,78 Z
+    "/>
+    <!-- قـ baseline bar connecting left to ن -->
+    <rect x="160" y="108" width="96" height="24"/>
+
+    <!-- قـ two Kufi diamond dots -->
+    <polygon points="208,18 220,30 208,42 196,30"/>
+    <polygon points="240,18 252,30 240,42 228,30"/>
+  </g>
+
+  <!-- نا (Teal #26A69A) -->
+  <g fill="#26A69A">
+    <!-- نـ vertical tooth -->
+    <polygon points="124,64 148,54 148,132 124,132"/>
+    <!-- نـ diamond dot -->
+    <polygon points="136,18 148,30 136,42 124,30"/>
+    <!-- نـ baseline connecting to ا -->
+    <rect x="64" y="108" width="88" height="24"/>
+    <!-- ـا tall Alif with Kufi angled top -->
+    <polygon points="64,22 88,12 88,132 64,132"/>
+  </g>
+</svg>

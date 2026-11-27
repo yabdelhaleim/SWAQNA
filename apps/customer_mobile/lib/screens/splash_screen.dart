@@ -56,47 +56,33 @@ class _SplashScreenState extends State<SplashScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 110,
-                height: 110,
+                width: 112,
+                height: 112,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primaryYellow, AppTheme.primaryOrange],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryYellow.withAlpha(80),
-                      blurRadius: 24,
+                      color: const Color(0xFF26A69A).withAlpha(70),
+                      blurRadius: 28,
                       offset: const Offset(0, 8),
                     ),
                   ],
                 ),
-                child: const Center(
-                  child: Text(
-                    '🛍️',
-                    style: TextStyle(fontSize: 54),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: Image.asset(
+                    'assets/images/swaqna_app_icon.png',
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              RichText(
-                text: const TextSpan(
-                  style: TextStyle(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'Cairo',
-                    letterSpacing: 1.5,
-                  ),
-                  children: [
-                    TextSpan(text: 'سـ', style: TextStyle(color: Color(0xFF26A69A))),
-                    TextSpan(text: 'وقـ', style: TextStyle(color: Color(0xFFE8521A))),
-                    TextSpan(text: 'نا', style: TextStyle(color: Color(0xFF26A69A))),
-                  ],
-                ),
+              Image.asset(
+                'assets/images/swaqna_logo.png',
+                width: 220,
+                fit: BoxFit.contain,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               const Text(
                 'لقطة في كل حاجة ..',
                 style: TextStyle(
